@@ -1,0 +1,12 @@
+{
+  "name": "final-project",
+  "version": "1.0.0",
+  "description": "Portfolio organization and development scripts",
+  "scripts": {
+    "dev:start": "bash 01-startup.sh",
+    "dev:ending": "bash 02-ending.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
