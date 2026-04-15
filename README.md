@@ -1,18 +1,22 @@
-# Final Project: Hermes-DQN
+# 期末專案：Hermes-DQN
 
-## 📌 Project Overview
+## 📌 專案總覽
 **Hermes-DQN: Memory-Augmented LLM Framework for Automated Reinforcement Learning Reward Design**
+*(Hermes-DQN：用於自動化強化學習獎勵函數設計的記憶擴增大型語言模型框架)*
 
-This project explores an automated framework using Large Language Models (LLMs) with memory-augmented capabilities to design rewards for Deep Reinforcement Learning (DRL) algorithms, specifically focusing on DQN based architectures.
+本專案探討如何利用具備記憶體擴增能力的大型語言模型 (LLMs)，為深度強化學習 (DRL) 演算法（特別針對 DQN 相關架構）提供自動化的獎勵機制設計。
 
-## 🎥 Introduction Video
-[🔗 Watch the Demo on YouTube](https://youtu.be/FmPRpDJ9JXI)
+## 📺 系統介紹影片
+點擊下方圖片即可觀看完整的 YouTube 系統介紹影片：
 
-## 📁 Repository Structure
+[![系統介紹影片](https://img.youtube.com/vi/FmPRpDJ9JXI/maxresdefault.jpg)](https://youtu.be/FmPRpDJ9JXI)
+
+> 🎥 **提示**：如果預覽圖沒有顯示，您也可以透過[這條連結直接觀看影片](https://youtu.be/FmPRpDJ9JXI)。
+
+## 📁 專案架構與檔案目錄
 - `/PPT`
-  - `Hermes-DQN Memory-Augmented LLM Framework for Automated Reinforcement Learning Reward Design.pdf`
-  - `Hermes-DQN_Introduction_正式版.pdf`
-  - `yt.txt` (YouTube Link)
-- Other related source codes and documentation will be structured within this repository.
+  - `Hermes-DQN Memory-Augmented LLM Framework for Automated Reinforcement Learning Reward Design.pdf` （完整報告與方法論）
+  - `Hermes-DQN_Introduction_正式版.pdf` （簡介簡報）
+- 其他相關原始碼、環境設定與測試腳本將結構化整理於此儲存庫中。
 
-*(Note: Please refer to the PDF documents in the `/PPT` folder for detailed presentation slides, methodologies, and framework architecture.)*
+*(備註：關於詳細的系統架構圖與實驗結果，請優先參閱 `/PPT` 資料夾內的 PDF 文件。)*
