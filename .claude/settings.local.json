@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Mao/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/49011012-0877-4492-997d-e64d09dcbd23/2307f060-24ed-4d8d-b796-b9a89675b2d4/skills/docx/**)",
+      "Bash(python scripts/office/unpack.py \"C:\\\\Users\\\\Mao\\\\Desktop\\\\Final Project\\\\docx\\\\Hermes-DQN_Paper_Chapters_1-3_v2.docx\" \"C:\\\\Users\\\\Mao\\\\Desktop\\\\Final Project\\\\docx\\\\unpacked\")",
+      "Bash(python -c ' *)",
+      "Bash(openspec --version)",
+      "Bash(npx openspec *)",
+      "Bash(openspec init *)"
+    ]
+  }
+}
