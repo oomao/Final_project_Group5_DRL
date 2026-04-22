@@ -26,5 +26,5 @@
 - `/images`
   - `architecture.png` （系統架構圖）
 - `/docx`
-  - `Hermes-DQN_Paper_Chapters_1-3_v2.docx` （論文草稿）
+  - `Hermes-DQN_Paper_Chapters_1-3_v2.pdf` （論文草稿 Chapters 1-3）
 - 其他相關原始碼、環境設定與測試腳本將結構化整理於此儲存庫中。
