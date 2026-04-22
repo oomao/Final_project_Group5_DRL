@@ -13,10 +13,18 @@
 
 > 🎥 **提示**：如果預覽圖沒有顯示，您也可以透過[這條連結直接觀看影片](https://youtu.be/FmPRpDJ9JXI)。
 
+## 🏗️ 系統架構圖
+
+![Hermes-DQN 系統架構圖](images/architecture.png)
+
+*Hermes-DQN 整體系統架構，包含教授系統（Nous Research Hermes Agent）、教授的大腦（Google Gemma 4 31B API）及球員管理（DQN Agent & Gymnasium Env）三大核心模組。*
+
 ## 📁 專案架構與檔案目錄
 - `/PPT`
   - `Hermes-DQN Memory-Augmented LLM Framework for Automated Reinforcement Learning Reward Design.pdf` （完整報告與方法論）
   - `Hermes-DQN_Introduction_正式版.pdf` （簡介簡報）
+- `/images`
+  - `architecture.png` （系統架構圖）
+- `/docx`
+  - `Hermes-DQN_Paper_Chapters_1-3_v2.docx` （論文草稿）
 - 其他相關原始碼、環境設定與測試腳本將結構化整理於此儲存庫中。
-
-*(備註：關於詳細的系統架構圖與實驗結果，請優先參閱 `/PPT` 資料夾內的 PDF 文件。)*
