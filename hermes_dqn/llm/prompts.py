@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from hermes_dqn.memory.entry import MemoryEntry
+
+
 LUNARLANDER_TASK_SPEC = """\
 Environment: Gymnasium LunarLander-v3 (discrete actions).
 
@@ -91,21 +97,50 @@ produce one candidate; future iterations may build on it.
 """
 
 
+def _format_prior_attempts(prior_attempts: "list[MemoryEntry]") -> str:
+    """Render the PRIOR HIGH-FITNESS ATTEMPTS block. Caller ensures list is non-empty."""
+    parts: list[str] = [
+        "PRIOR HIGH-FITNESS ATTEMPTS (use these as inspiration, don't copy verbatim):",
+    ]
+    for i, e in enumerate(prior_attempts):
+        if e.env_native_mean is not None:
+            fitness_line = (
+                f"env_native_mean={e.env_native_mean:.2f}, success_rate={e.success_rate:.2f}"
+            )
+        else:
+            fitness_line = (
+                f"mean_reward_last100={e.mean_reward_last100:.2f} (shaped, no apples-to-apples eval available), "
+                f"success_rate={e.success_rate:.2f}"
+            )
+        attempt_label = chr(ord("A") + i)
+        parts.append(
+            f"\nAttempt {attempt_label} ({fitness_line}):\n"
+            f"```python\n{e.reward_code.rstrip()}\n```"
+        )
+        if e.lessons_learned:
+            parts.append(f"Lessons: {e.lessons_learned}")
+    return "\n".join(parts)
+
+
 def build_lunarlander_prompt(
     task_spec: str = LUNARLANDER_TASK_SPEC,
     retry_context: str | None = None,
     force_fallback: bool = False,
+    prior_attempts: "list[MemoryEntry] | None" = None,
 ) -> str:
     """Compose the full prompt for one Gemma generation attempt.
 
-    Args:
-        task_spec: The task description (defaults to LunarLander-v3 spec).
-        retry_context: If this is a retry, the prior attempt's error message
-            and stage (e.g., "ast-import-rejected: import os is forbidden").
-        force_fallback: When True (used on the 3rd attempt), the prompt
-            explicitly instructs Gemma to emit the simplest passthrough.
+    When ``prior_attempts`` is non-empty, a "PRIOR HIGH-FITNESS ATTEMPTS" block
+    is inserted after the task spec and before the few-shot examples. When
+    ``prior_attempts`` is None or empty, the output is byte-identical to the
+    gemma-reward-generator-era prompt for the same other inputs.
     """
-    parts: list[str] = [_SYSTEM_PREAMBLE, "TASK:", task_spec, _RESPONSE_FORMAT]
+    parts: list[str] = [_SYSTEM_PREAMBLE, "TASK:", task_spec]
+
+    if prior_attempts:
+        parts.append(_format_prior_attempts(prior_attempts))
+
+    parts.append(_RESPONSE_FORMAT)
 
     if force_fallback:
         parts.append(

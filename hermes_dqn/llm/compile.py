@@ -1,14 +1,31 @@
 """Sandboxed compile of an LLM-generated reward function.
 
-The LLM is treated as a cooperative author that can make mistakes, NOT as an
-adversary. The sandbox blocks accidental escapes (imports, dunder access,
-non-whitelisted builtins) but does not attempt to resist a determined attacker.
+LLM is a cooperative author that makes mistakes, not an adversary. Multi-layer
+protection:
+
+- L1 (this module): AST blacklist (imports, dunder access) + restricted-globals exec
+  with a builtins whitelist + signature-arity check + dry-run with return-type check
+- L2 (``hermes_dqn.llm.sandbox``): the validation pipeline above is run in a hard-
+  killable ``multiprocessing.Process`` so dry-run hangs (esp. in C extensions)
+  cannot leak threads back into the training process
+- L3 (planned, see ``reward-sandbox-isolation`` change): container-level isolation
+  for file-system and network egress; out of scope here
+
+This file exposes ``compile_reward`` (public; subprocess-validated by default)
+and three internal helpers used by ``sandbox.py`` and the legacy debug path:
+
+- ``_ast_check_and_exec``: parse + reject + exec + extract callable. NO dry-run.
+- ``_dry_run``: invoke a callable once on a synthetic transition under a soft
+  100 ms thread-based cap. Used inside the subprocess (where the outer hard
+  timeout catches anything this misses).
+- ``_validate_full``: the pipeline run inside the subprocess by sandbox.py.
 """
 
 from __future__ import annotations
 
 import ast
 import inspect
+import sys
 import threading
 import traceback
 from typing import Any, Callable
@@ -17,7 +34,7 @@ import numpy as np
 
 
 class RewardCompileError(Exception):
-    """Raised by compile_reward when LLM source fails any validation stage."""
+    """Raised by validation/compile when LLM source fails any stage."""
 
     def __init__(self, stage: str, message: str, tb: str | None = None):
         self.stage = stage
@@ -54,7 +71,6 @@ _DRY_RUN_TIMEOUT_SEC = 0.1
 
 
 def _reject_unsafe_ast(tree: ast.AST) -> None:
-    """Walk the AST and raise RewardCompileError on disallowed constructs."""
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             raise RewardCompileError(
@@ -89,13 +105,46 @@ def _extract_reward_callable(namespace: dict[str, Any]) -> Callable:
     return fn
 
 
-def _dry_run(fn: Callable, timeout_sec: float = _DRY_RUN_TIMEOUT_SEC) -> Any:
-    """Invoke the reward function once with synthetic args under a wall-time cap.
+def _ast_check_and_exec(src: str) -> Callable:
+    """Parse, reject unsafe, exec with restricted globals, return callable. NO dry-run."""
+    try:
+        tree = ast.parse(src)
+    except SyntaxError as e:
+        raise RewardCompileError(
+            "syntax-error",
+            f"line {e.lineno}: {e.msg}",
+            tb=traceback.format_exc(),
+        ) from e
 
-    On Windows we cannot use signal.alarm, so the timeout is implemented by
-    running the call in a daemon thread and abandoning it after the deadline.
-    The function won't be truly killed (Python threads aren't preemptible),
-    but the dry-run is bounded and the result is detected as a timeout.
+    _reject_unsafe_ast(tree)
+
+    try:
+        code = compile(tree, "<llm-reward>", "exec")
+    except (SyntaxError, ValueError) as e:
+        raise RewardCompileError(
+            "compile-error",
+            str(e),
+            tb=traceback.format_exc(),
+        ) from e
+
+    namespace: dict[str, Any] = {"__builtins__": SAFE_BUILTINS, "np": np}
+    try:
+        exec(code, namespace)
+    except BaseException as e:
+        raise RewardCompileError(
+            "module-exec-error",
+            f"top-level exec raised {type(e).__name__}: {e}",
+            tb=traceback.format_exc(),
+        ) from e
+
+    return _extract_reward_callable(namespace)
+
+
+def _dry_run(fn: Callable, timeout_sec: float = _DRY_RUN_TIMEOUT_SEC) -> Any:
+    """Invoke fn once on a synthetic transition under a soft thread-based cap.
+
+    Used inside the subprocess; the parent's hard-kill timeout covers cases
+    where this thread join times out (Python threads cannot truly be killed).
     """
     rng = np.random.default_rng(0)
     obs = rng.standard_normal(8).astype(np.float32)
@@ -130,49 +179,55 @@ def _dry_run(fn: Callable, timeout_sec: float = _DRY_RUN_TIMEOUT_SEC) -> Any:
     return result[0]
 
 
-def compile_reward(src: str) -> Callable:
-    """Parse, sandbox-compile, and dry-run-validate an LLM-generated reward.
+def _validate_full(src: str) -> None:
+    """Full validation pipeline. Designed to be invoked inside sandbox.py's subprocess.
 
-    Returns the validated callable. Any failure raises RewardCompileError
-    whose ``stage`` field identifies which validation step rejected the source.
+    Raises RewardCompileError on any failure with a populated ``stage``.
+    Returns None on success.
     """
-    try:
-        tree = ast.parse(src)
-    except SyntaxError as e:
-        raise RewardCompileError(
-            "syntax-error",
-            f"line {e.lineno}: {e.msg}",
-            tb=traceback.format_exc(),
-        ) from e
-
-    _reject_unsafe_ast(tree)
-
-    try:
-        code = compile(tree, "<llm-reward>", "exec")
-    except (SyntaxError, ValueError) as e:
-        raise RewardCompileError(
-            "compile-error",
-            str(e),
-            tb=traceback.format_exc(),
-        ) from e
-
-    namespace: dict[str, Any] = {"__builtins__": SAFE_BUILTINS, "np": np}
-    try:
-        exec(code, namespace)
-    except BaseException as e:
-        raise RewardCompileError(
-            "module-exec-error",
-            f"top-level exec raised {type(e).__name__}: {e}",
-            tb=traceback.format_exc(),
-        ) from e
-
-    fn = _extract_reward_callable(namespace)
-
+    fn = _ast_check_and_exec(src)
     dry_result = _dry_run(fn)
-    if not isinstance(dry_result, (int, float)) or isinstance(dry_result, bool):
+    # Accept Python int/float AND numpy scalar types (numpy float32 etc. fail
+    # isinstance(float) on most systems); reject bool (subtype of int).
+    if isinstance(dry_result, bool):
+        raise RewardCompileError(
+            "dry-run-return-type",
+            f"reward must return float or int (got bool)",
+        )
+    try:
+        float(dry_result)
+    except (TypeError, ValueError):
         raise RewardCompileError(
             "dry-run-return-type",
             f"reward must return float or int (got {type(dry_result).__name__})",
         )
 
-    return fn
+
+_UNSAFE_INLINE_WARNED = False
+
+
+def compile_reward(src: str, *, _unsafe_inline: bool = False) -> Callable:
+    """Validate and return a callable for the LLM-generated reward.
+
+    Default path uses ``hermes_dqn.llm.sandbox.validate_reward_in_subprocess``
+    to run the validation pipeline in a hard-killable subprocess. After
+    validation passes, the source is re-compiled inline in the calling process
+    (no dry-run; already validated) so training-loop calls do not pay any IPC
+    cost. ``_unsafe_inline=True`` skips the subprocess hop — only for debugging
+    when you need traceback line numbers aligned with the LLM-emitted source.
+    """
+    if _unsafe_inline:
+        global _UNSAFE_INLINE_WARNED
+        if not _UNSAFE_INLINE_WARNED:
+            sys.stderr.write(
+                "WARN: compile_reward sandbox bypassed (--unsafe-inline-compile); debug only.\n"
+            )
+            _UNSAFE_INLINE_WARNED = True
+        _validate_full(src)
+        return _ast_check_and_exec(src)
+
+    # Local import avoids a cycle: sandbox.py imports RewardCompileError from here.
+    from hermes_dqn.llm.sandbox import validate_reward_in_subprocess
+
+    validate_reward_in_subprocess(src)
+    return _ast_check_and_exec(src)

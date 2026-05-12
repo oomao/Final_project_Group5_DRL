@@ -70,27 +70,27 @@ Any function matching the 7-argument signature works — including code generate
 
 ## Baseline runs
 
-In-training fitness (computed on the reward source the agent saw):
+Apples-to-apples evaluation (greedy playback on env-native reward, 100 unseen eval seeds 10000-10099). All on RTX 4090 / Windows 11 / Python 3.11 / torch 2.5.1+cu121.
 
-| Date | Seed | Reward source | Converge ep | Mean (last 100) | Success rate | Wall time |
-| --- | --- | --- | --- | --- | --- | --- |
-| 2026-05-12 | 42 | env (native) | 399 | 262.79 | 0.95 | 24m47s |
-| 2026-05-12 | 42 | llm (Gemma 4 31B) | 525 | 312.21 *(shaped)* | 0.85 *(shaped)* | 16m29s |
+| Run | Reward source | Memory state | Priors used | Mean env reward | Success ≥200 | Crash <0 | Mean ep length |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `baseline_seed42` | env (native) | — | — | 162.72 | 53% | 14% | 265 |
+| `gemma_seed42` | llm (Gemma 4 31B) | none | — | 207.72 | 78% | 7% | 419 |
+| `gemma_mem_seed42` | llm + memory | hermes-sqlite-fts5 | `[]` (empty DB) | **235.21** | 80% | **3%** | 461 |
+| `gemma_mem_seed43` | llm + memory | hermes-sqlite-fts5 | `[1]` (reads seed 42) | 224.53 | 78% | **3%** | 312 |
 
-> Hardware (both runs): NVIDIA RTX 4090 / Windows 11 / Python 3.11 / torch 2.5.1+cu121.
-> Mean and success rate for the llm row are computed on the *shaped* return the agent
-> trained against (Gemma added shaping + terminal amplification on top of env reward),
-> so the column is NOT directly comparable to the env row. See the apples-to-apples
-> table below.
+**What this shows (n=1, mechanism only — no statistical claim yet):**
 
-Apples-to-apples evaluation (greedy playback of the trained model on env-native reward, 100 unseen eval seeds 10000-10099):
+- **EUREKA open-source replication still holds**: every llm-source run beats `baseline_seed42` (162.72) by a wide margin
+- **Memory mechanism works end-to-end**: `gemma_mem_seed43` confirms `memory_priors_used=[1]` in its `config.json` — the second run read seed 42's reward+fitness as in-context prior, then wrote its own as entry id=2
+- **Crash rate halves with memory** (7% → 3%); whether this is signal or noise needs 5-seed verification (queued for `closed-loop-fitness`)
+- **n=1 caveat**: comparing 235 vs 224 vs 207 across single seeds is dominated by Gemma's stochastic output. The `experiments-protocol` spec mandates 5 seeds + Mann-Whitney U + bootstrap CI before any "memory helps" claim.
 
-| Reward source used in training | Mean env reward | Median | Success rate (≥200) | Crash rate (<0) | Mean ep length |
-| --- | --- | --- | --- | --- | --- |
-| env (native) | 162.72 | 226.43 | 53% | 14% | 265 |
-| llm (Gemma 4 31B) | **207.72** | **238.02** | **78%** | **7%** | **419** |
+In-training shaped fitness (reward the agent *saw*, not directly comparable across reward sources):
 
-The Gemma reward yields **+45 mean reward (+28%)**, **+25 pp success rate**, **halves crash rate**,
-and trains **33% faster wall-clock**. First-shot LLM reward, no memory, no AST yet — this is
-the EUREKA open-source replication thesis (Gemma replacing GPT-4) holding on seed 42. Multi-seed
-verification queued for the `closed-loop-fitness` change per `experiments-protocol` spec.
+| Run | Shaped mean (last 100) | Shaped success | Converge ep |
+| --- | --- | --- | --- |
+| `baseline_seed42` | 262.79 | 0.95 | 399 |
+| `gemma_seed42` | 312.21 | 0.85 | 525 |
+| `gemma_mem_seed42` | 221.72 | (varies) | (in `episodes.jsonl`) |
+| `gemma_mem_seed43` | 164.88 | (varies) | (in `episodes.jsonl`) |

@@ -1,9 +1,11 @@
 """LLMRewardClient: Gemma 4 31B reward-function generator with 3-retry sandbox.
 
 The client wraps Google AI Studio's google-genai SDK. It:
-1. Builds a prompt using hermes_dqn.llm.prompts.build_lunarlander_prompt
-2. Calls Gemma to produce Python source for a `reward` function
-3. Validates the source via hermes_dqn.llm.compile.compile_reward
+1. Builds a prompt using ``hermes_dqn.llm.prompts.build_lunarlander_prompt``,
+   optionally embedding prior high-fitness memory entries as in-context examples
+2. Calls Gemma to produce Python source for a ``reward`` function
+3. Validates the source via ``hermes_dqn.llm.compile.compile_reward`` (which
+   internally uses the subprocess sandbox in ``hermes_dqn.llm.sandbox``)
 4. On validation failure, re-prompts up to 3 total attempts (3rd forces fallback)
 5. Optionally appends each attempt to a JSONL log for post-hoc inspection
 """
@@ -15,11 +17,15 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from google import genai
 
 from hermes_dqn.llm.compile import RewardCompileError, compile_reward
 from hermes_dqn.llm.prompts import LUNARLANDER_TASK_SPEC, build_lunarlander_prompt
+
+if TYPE_CHECKING:
+    from hermes_dqn.memory.entry import MemoryEntry
 
 
 _DEFAULT_MODEL = "gemma-4-31b-it"
@@ -45,11 +51,6 @@ class RewardGenerationError(Exception):
 
 
 def _extract_code_block(response_text: str) -> str:
-    """Pull the first fenced Python code block out of a possibly-noisy response.
-
-    Prefers ```python ... ```; falls back to the first ``` ... ``` of any flavor;
-    falls back to the full response stripped if no fences exist.
-    """
     py_match = re.search(r"```python\s*\n(.*?)```", response_text, re.DOTALL)
     if py_match:
         return py_match.group(1).strip() + "\n"
@@ -96,13 +97,20 @@ class LLMRewardClient:
         self,
         task_spec: str = LUNARLANDER_TASK_SPEC,
         attempts_log_path: str | Path | None = None,
+        memory: "list[MemoryEntry] | None" = None,
     ) -> str:
         """Return validated reward-function source code as a string.
 
-        Raises RewardGenerationError after _MAX_ATTEMPTS failures.
+        When ``memory`` is a non-empty list, a "PRIOR HIGH-FITNESS ATTEMPTS"
+        section is added to the prompt summarizing those entries. ``memory=None``
+        and ``memory=[]`` both produce the gemma-reward-generator-era behavior
+        (no prior-attempts section).
+
+        Raises ``RewardGenerationError`` after _MAX_ATTEMPTS failures.
         """
         attempts: list[_Attempt] = []
         retry_context: str | None = None
+        prior_attempts = memory or None  # treat empty list as None
 
         for attempt_idx in range(1, _MAX_ATTEMPTS + 1):
             force_fallback = attempt_idx == _MAX_ATTEMPTS
@@ -110,6 +118,7 @@ class LLMRewardClient:
                 task_spec=task_spec,
                 retry_context=retry_context,
                 force_fallback=force_fallback,
+                prior_attempts=prior_attempts,
             )
 
             try:
