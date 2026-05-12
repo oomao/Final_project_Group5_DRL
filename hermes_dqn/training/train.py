@@ -28,6 +28,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from hermes_dqn.agent.dqn_agent import DQNAgent, DQNConfig
+from hermes_dqn.agent.replay_buffer import ReplayBuffer
 from hermes_dqn.env.lunar_lander import make_env
 from hermes_dqn.training.eval_env_native import evaluate_on_env_native
 from hermes_dqn.training.logger import JsonlLogger
@@ -183,15 +184,33 @@ def _resolve_reward(config: TrainConfig, run_dir: Path):
     return src, fn, memory_store
 
 
-def train(config: TrainConfig) -> Path:
-    """Run a full training session and return the run directory."""
+def train(
+    config: TrainConfig,
+    pre_loaded_buffer: ReplayBuffer | None = None,
+    pre_resolved_reward: tuple[str, "Callable | None"] | None = None,
+) -> Path:
+    """Run a full training session and return the run directory.
+
+    ``pre_loaded_buffer``: when given, the agent's replay buffer is replaced by
+    this instance immediately after construction. Used by closed-loop training
+    to inherit experience from a prior iteration.
+
+    ``pre_resolved_reward``: when given as ``(source, callable)``, train() skips
+    its own LLM/env reward resolution and uses these directly. The caller is
+    then responsible for memory writes (closed-loop scenario). When ``None``,
+    behavior is byte-identical to the gemma-reward-generator-era train().
+    """
     set_global_seed(config.seed)
     run_dir = _make_run_dir(config.out_dir)
     config.out_dir = str(run_dir)
 
     # Resolve reward BEFORE writing config.json so we can record SHA-256 there.
     # If --reward-source llm fails, this exits non-zero before training starts.
-    reward_src, reward_fn, memory_store = _resolve_reward(config, run_dir)
+    if pre_resolved_reward is not None:
+        reward_src, reward_fn = pre_resolved_reward
+        memory_store = None
+    else:
+        reward_src, reward_fn, memory_store = _resolve_reward(config, run_dir)
 
     reward_fn_path = run_dir / "reward_fn.py"
     reward_src_bytes = reward_src.encode("utf-8")
@@ -210,6 +229,10 @@ def train(config: TrainConfig) -> Path:
     config.dqn.n_actions = int(act_space.n)
 
     agent = DQNAgent(config.dqn, seed=config.seed)
+    if pre_loaded_buffer is not None:
+        # Closed-loop iteration: inherit experience from the previous iteration's
+        # buffer (already post-processed by ast-buffer-manager's apply_policy).
+        agent.buffer = pre_loaded_buffer
 
     jsonl_path = run_dir / "episodes.jsonl"
     start = time.time()
@@ -249,6 +272,9 @@ def train(config: TrainConfig) -> Path:
             pbar.set_postfix(ret=f"{ep_return:.1f}", eps=f"{agent.epsilon():.2f}")
 
     agent.save(run_dir / "model_final.pt")
+    # Persist the replay buffer so closed-loop iterations can warm-start the
+    # next round. ~7.6 MB compressed for a 100K-capacity buffer; safe overhead.
+    agent.buffer.save(run_dir / "buffer.npz")
     env.close()
 
     # ---- Post-training: env-native apples-to-apples eval + memory writeback ----

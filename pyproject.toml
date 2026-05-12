@@ -17,6 +17,8 @@ dependencies = [
     "tqdm~=4.66",
     "google-genai~=2.0",
     "python-dotenv~=1.0",
+    "scipy~=1.14",
+    "matplotlib~=3.10",
 ]
 
 [project.optional-dependencies]

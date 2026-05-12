@@ -1,6 +1,9 @@
 # Training artifacts
 runs/
 
+# Evaluation reports (figures + markdown produced by tools/compare_conditions.py)
+reports/
+
 # Python
 __pycache__/
 *.py[cod]
