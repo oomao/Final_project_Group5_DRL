@@ -40,6 +40,30 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 
 ---
 
+## 📈 目前進度
+
+| 子系統 | 狀態 | OpenSpec change |
+| --- | --- | --- |
+| DQN baseline + reward 介面 + fitness | ✅ 已完成、strict-valid | [`bootstrap-dqn-baseline`](openspec/changes/bootstrap-dqn-baseline/) |
+| 專案治理規範（文件 / 環境 / 實驗 / 評估 / 交付） | ✅ 已完成、46 個 SHALL/MUST | [`establish-project-lifecycle-spec`](openspec/changes/establish-project-lifecycle-spec/) |
+| Gemma reward 生成器（教練的大腦） | ✅ 已完成、smoke 7/7、Gemma 勝 baseline | [`gemma-reward-generator`](openspec/changes/gemma-reward-generator/) |
+| Hermes 4 層記憶（教練的筆記本） | ⏳ 待開 | `hermes-memory-layer` |
+| AST + Buffer 管理器 | ⏳ 待開 | `ast-buffer-manager` |
+| 7 步閉環整合 + 5-seed 統計 | ⏳ 待開 | `closed-loop-fitness` |
+
+### 初步結果（seed=42 單次，n=1，需多 seed 驗證）
+
+訓練好的 model 在 **100 個未見過的測試 seed**（10000-10099）上 greedy playback，**用 env-native reward 評分**（apples-to-apples）：
+
+| 訓練時用的 reward | Mean env reward | Success rate (≥200) | Crash rate (<0) | 訓練 wall-time |
+| --- | --- | --- | --- | --- |
+| env-native（baseline） | 162.72 | 53% | 14% | 24m47s |
+| **Gemma 4 31B 寫的** | **207.72** *(+28%)* | **78%** *(+25pp)* | **7%** *(-50%)* | **16m29s** *(-33%)* |
+
+Gemma 第一次寫的 reward 在所有指標上明顯優於環境內建 reward —— **EUREKA 命題的開源重現，在 seed 42 上成立**。多 seed 統計檢定（Mann-Whitney U + bootstrap CI）排在 `closed-loop-fitness` 階段做，屆時才是正式 claim。
+
+---
+
 ## 📺 系統介紹影片
 
 [![系統介紹影片](https://img.youtube.com/vi/b4ad_7xtydk/maxresdefault.jpg)](https://youtu.be/b4ad_7xtydk)
@@ -110,18 +134,56 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 
 | 路徑 | 內容 | 何時使用 |
 | --- | --- | --- |
+| `hermes_dqn/` | 主要 Python 套件：`env/` `agent/` `training/` `utils/` `llm/` | 寫 / 跑訓練實驗 |
+| `tools/` | 評估與驗證輔助腳本（apples-to-apples eval、smoke verify） | 跑公平比較 |
+| `runs/` | 訓練產出（`config.json` / `episodes.jsonl` / `model_final.pt` / `reward_fn.py`）── gitignored | 訓練後查看結果 |
+| `pyproject.toml` / `requirements.txt` | Python 相依套件清單 | 安裝環境 |
+| `.env.example` | API key 範本（Gemma）── 複製成 `.env` 後填入 | `--reward-source llm` 模式 |
+| `白話架構介紹.md` | 非技術背景讀者的入門文件（籃球教練比喻） | 給隊友 / 教師快速理解 |
 | `PPT/` | 期末報告簡報 v1 / v2、YouTube 口白稿 | 口頭報告、錄影 |
 | `docx/` | 論文 v1 / v2（PDF + DOCX）、相關研究與支持數據整理 | 撰寫 / 修改論文 |
 | `images/` | `第二版架構圖.png`（最新系統架構圖） | README 與簡報引用 |
-| `aichat_record/` | 與 Claude / Gemini / NotebookLM 的研究對話紀錄 | 追溯設計脈絡 |
+| `aichat_record/` | 與 Claude / Gemini / NotebookLM 的研究對話紀錄（分子資料夾） | 追溯設計脈絡 |
 | `openspec/` | OpenSpec 變更管理：`changes/`、`specs/`、`archive/` | 新增功能前先寫 proposal |
 | `01-startup.sh` / `02-ending.sh` | 每日工作階段自動化腳本 | 由 `npm run dev:*` 呼叫 |
+| `NN-handover.md` | 跨 session 交接文件，`NN-` 順序遞增不跳號 | 開工讀最新一份 |
 | `CLAUDE.md` | 專案開發守則與工作流程 | 協作時參考 |
 
 ### 檔案版本命名
 
 所有可迭代產物（簡報、論文、架構圖）一律使用「**第 N 版**」中文後綴，最新以數字最大者為準：
 - `PPT_第二版.pdf`、`文件第二版.docx`、`第二版架構圖.png`
+
+---
+
+## 🚀 快速開始
+
+需求:Python 3.11、NVIDIA GPU(可選,CPU 也能跑只是慢)。
+
+```bash
+# 1. 安裝
+pip install -e .
+
+# 2. 驗證環境(10 集 < 30 秒)
+python -m hermes_dqn.training.train --episodes 10 --seed 42
+
+# 3. 完整 baseline 訓練(1500 集,4090 約 25 分鐘)
+python -m hermes_dqn.training.train --episodes 1500 --seed 42
+
+# 4. 看訓練好的 agent 飛
+python -m hermes_dqn.training.play --run-dir runs/<時間戳>
+```
+
+要跑 LLM-generated reward 模式:
+
+```bash
+# 1. 申請 Gemma key:https://aistudio.google.com/app/apikey
+# 2. cp .env.example .env,把 key 貼進 .env
+# 3. 跑(會呼叫 Gemma 一次寫 reward,再訓練)
+python -m hermes_dqn.training.train --reward-source llm --episodes 1500 --seed 42
+```
+
+完整安裝細節與 Windows + Box2D 注意事項見 [hermes_dqn/README.md](hermes_dqn/README.md)。
 
 ---
 
@@ -155,3 +217,5 @@ npm run dev:ending   # 更新 tasks.md → 寫新 handover → commit & push
 - **GitHub**：<https://github.com/oomao/Final_project_Group5_DRL>
 - **影片**：<https://youtu.be/b4ad_7xtydk>
 - **分支**：`main`
+- **非技術讀者入門**：[白話架構介紹.md](白話架構介紹.md)（用籃球教練比喻講解整套系統）
+- **套件文件**:[hermes_dqn/README.md](hermes_dqn/README.md)（安裝、訓練指令、baseline 數據表）
