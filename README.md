@@ -42,25 +42,42 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 
 ## 📈 目前進度
 
-| 子系統 | 狀態 | OpenSpec change |
+**三大核心貢獻全部實作完成、archive 為 19 個永久 capability spec、pilot 機制驗證通過。**
+
+| 子系統 | 狀態 | 對應 OpenSpec change(已 archive) |
 | --- | --- | --- |
-| DQN baseline + reward 介面 + fitness | ✅ 已完成、strict-valid | [`bootstrap-dqn-baseline`](openspec/changes/bootstrap-dqn-baseline/) |
-| 專案治理規範（文件 / 環境 / 實驗 / 評估 / 交付） | ✅ 已完成、46 個 SHALL/MUST | [`establish-project-lifecycle-spec`](openspec/changes/establish-project-lifecycle-spec/) |
-| Gemma reward 生成器（教練的大腦） | ✅ 已完成、smoke 7/7、Gemma 勝 baseline | [`gemma-reward-generator`](openspec/changes/gemma-reward-generator/) |
-| Hermes 4 層記憶（教練的筆記本） | ⏳ 待開 | `hermes-memory-layer` |
-| AST + Buffer 管理器 | ⏳ 待開 | `ast-buffer-manager` |
-| 7 步閉環整合 + 5-seed 統計 | ⏳ 待開 | `closed-loop-fitness` |
+| DQN baseline + reward 介面 + fitness | ✅ 3 capability | `bootstrap-dqn-baseline` |
+| 專案治理規範(文件 / 環境 / 實驗 / 評估 / 交付) | ✅ 5 capability、46 個 SHALL/MUST | `establish-project-lifecycle-spec` |
+| Gemma 4 31B reward 生成器(教練的大腦) | ✅ 2 capability,smoke 7/7,Gemma 勝 baseline | `gemma-reward-generator` |
+| Hermes SQLite FTS5 長期記憶 + L2 子程序 sandbox | ✅ 3 capability,記憶機制驗證 | `hermes-memory-layer` |
+| AST diff + Buffer 政策(KEEP/DECAY/CLEAR) | ✅ 1 capability,27/27 unit test | `ast-buffer-manager` |
+| 7 步閉環引擎 + Mann-Whitney 統計工具 | ✅ 2 capability,pilot 3 iter × seed 42 通過 | `closed-loop-fitness` |
+| L3 Docker 容器隔離(未來工作) | 📝 proposal-only,觸發條件式 | [`reward-sandbox-isolation`](openspec/changes/reward-sandbox-isolation/) |
 
-### 初步結果（seed=42 單次，n=1，需多 seed 驗證）
+19 個永久 capability spec 全部位於 [`openspec/specs/`](openspec/specs/);archived changes 在 [`openspec/changes/archive/`](openspec/changes/archive/)。
 
-訓練好的 model 在 **100 個未見過的測試 seed**（10000-10099）上 greedy playback，**用 env-native reward 評分**（apples-to-apples）：
+### 初步結果(seed=42 單次,n=1,正式 5-seed 統計留給「實驗週」)
+
+訓練好的 model 在 **100 個未見過的測試 seed**(10000-10099)上 greedy playback、**用 env-native reward 評分**(apples-to-apples):
 
 | 訓練時用的 reward | Mean env reward | Success rate (≥200) | Crash rate (<0) | 訓練 wall-time |
 | --- | --- | --- | --- | --- |
-| env-native（baseline） | 162.72 | 53% | 14% | 24m47s |
-| **Gemma 4 31B 寫的** | **207.72** *(+28%)* | **78%** *(+25pp)* | **7%** *(-50%)* | **16m29s** *(-33%)* |
+| env-native(baseline) | 162.72 | 53% | 14% | 24m47s |
+| Gemma 4 31B(無記憶) | **207.72** *(+28%)* | **78%** *(+25pp)* | **7%** *(-50%)* | 16m29s |
+| Gemma + 記憶(空 prior) | **235.21** | **80%** | **3%** | ~20m |
+| Gemma + 記憶(讀 prior) | 224.53 | 78% | **3%** | ~20m |
 
-Gemma 第一次寫的 reward 在所有指標上明顯優於環境內建 reward —— **EUREKA 命題的開源重現，在 seed 42 上成立**。多 seed 統計檢定（Mann-Whitney U + bootstrap CI）排在 `closed-loop-fitness` 階段做，屆時才是正式 claim。
+**閉環 pilot**(`runs/pilot/B3-pilot/seed_42/`,3 iter × 1 seed,~52 分鐘):
+
+| Iter | Priors | AST diff | Buffer action | env_native_mean | Success | Crash |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `[]` | — | — | 181.33 | 65% | 22% |
+| 2 | `[1]` | STRUCTURAL_DIFF(sim 0.71) | DECAY | 90.35 | 12% | 12% |
+| 3 | `[1, 2]` | TOTAL_REWRITE(sim 0.56) | CLEAR | 168.54 | 25% | **2%** |
+
+**機制全綠**:memory_priors_used、diff 分類、buffer_action(DECAY / CLEAR)、所有 artifact 跨 iter 正確流動。**實證 n=1 太吵**:env_native_mean 非單調、唯一單調是 crash_rate 22→12→2%。**正式統計** claim 等實驗週跑滿 6 condition × 5 seed × 5 iter(~60 GPU-hr)。
+
+執行 `python tools/compare_conditions.py --exp <X> --conditions A,B,C` 即可吐出論文 Table 1 範本(已在 pilot 上驗證可用)。
 
 ---
 

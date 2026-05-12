@@ -3,7 +3,7 @@
 **日期**:2026-05-12
 **AI**:Claude Opus 4.7 (1M context)
 **人員**:csm088220@gmail.com (1 名,本 session 為個人推進)
-**Session 範圍**:從零實作 Hermes-DQN 的前三塊磚 — DQN baseline、專案治理 spec、Gemma reward 接入
+**Session 範圍**:從零實作整套 Hermes-DQN ── README 三大核心貢獻全部完成 + L2 sandbox + 7 步閉環 + 統計工具 + 7 個 change archive,可跑可重現
 
 ---
 
@@ -11,21 +11,28 @@
 
 | 面向 | Session 開始 | Session 結束 |
 |---|---|---|
-| **Python 程式碼** | 完全沒有 | 完整 `hermes_dqn/` package(5 個子模組,~1200 行) |
+| **Python 程式碼** | 完全沒有 | 完整 `hermes_dqn/` package(7 個子模組,~5000 行) |
 | **DQN baseline** | 設計只在 README | 訓練可跑通,seed=42 收斂於 ep 399、success 95% |
-| **治理規範** | 散落 / 未成文 | 46 個 SHALL/MUST Requirement,5 個 capability spec,strict validate 通過 |
-| **LLM reward 通道** | 概念 | 實作完成,Gemma 第一次寫就過編譯,smoke 7/7 全綠 |
-| **OpenSpec changes** | 2(`improve-dev-scripts` + `numbering-rule`) | 5(再加 `bootstrap-dqn-baseline` + `establish-project-lifecycle-spec` + `gemma-reward-generator`) |
-| **可視化** | 無 | pygame `play.py` 可載入 model 看 agent 飛 |
+| **LLM reward 通道** | 概念 | 完整 Gemma 4 31B 接入 + L2 子程序 sandbox + 3-retry,單發勝 baseline +28% |
+| **記憶系統** | 概念 | SQLite FTS5 長期記憶層運作,跨 iter 累積 priors 已驗證 |
+| **AST/Buffer 管理** | 概念 | 純函式庫 + ReplayBuffer save/load + 4 種 diff 分類 + 3 種 buffer 政策 |
+| **閉環引擎** | 不存在 | 7 步閉環 in-process 多輪迭代,pilot 3 iter × seed 42 驗證 |
+| **統計工具** | 不存在 | Mann-Whitney + bootstrap CI + 三條件 Win 判定 + 報告生成 |
+| **治理規範** | 散落 / 未成文 | 46 個 SHALL/MUST Requirement,5 個 capability spec |
+| **OpenSpec changes** | 2(`improve-dev-scripts` + `numbering-rule`) | **9**(7 archived + 1 active + 原本的 numbering-rule) |
+| **永久 capability spec** | 1(numbering-rule) | **19**(全部位於 `openspec/specs/`) |
+| **可視化** | 無 | pygame `play.py` + 訓練曲線動畫 + 遊戲對打 GIF |
 | **安全** | `.env` 未在 `.gitignore`(漏洞) | `.env` + `.env.local` 都在 ignore,API key 保護到位 |
 
 ---
 
-## 三大成果一句話描述
+## 三大成果一句話描述(對應 README 三大核心貢獻,**全部到位**)
 
-1. **DQN Baseline 站穩**:vanilla DQN(MLP 64-64, lr 5e-4)在 LunarLander-v3 收斂於 ep 399,比 IJRPR 2025 文獻的 ~1200 ep 快 3 倍 ── 後續所有實驗的底盤
-2. **治理 spec 落地**:用「3 個 subagent 平行討論 + 1 個 reviewer 整合」的 multi-agent 模式產出 5 個 capability spec(文件 / 環境 / 實驗 / 評估 / 交付),後續每個 change 都要引用
-3. **Gemma reward generator 通線**:Google Gemma 4 31B → 7-arg Python reward → AST 沙箱 + 3-retry → DQN 訓練,end-to-end smoke 全綠
+1. **開源化(Gemma)**:Google Gemma 4 31B → 7-arg Python reward → AST 沙箱 + L2 子程序隔離 + 3-retry → DQN 訓練。Gemma 單發勝 baseline +28% env_native_mean(207.72 vs 162.72)。EUREKA 命題開源重現成立(seed=42)
+2. **記憶擴增**:SQLite FTS5 長期記憶層,跨 iter 把過去 reward + fitness 當 prior 餵給 Gemma。Pilot 確認 iter 2/3 prompt 真的含 PRIOR HIGH-FITNESS ATTEMPTS
+3. **AST 感知緩衝區**:`diff_rewards` 4 種分類 + KEEP/DECAY/CLEAR 政策 + ReplayBuffer save/load。Pilot 觀察到 sim=0.71 → DECAY、sim=0.56 → CLEAR,完全符合設計
+
+**加碼(README 未列但實作了)**:7 步閉環引擎、Mann-Whitney + bootstrap 統計工具、治理 spec 46 條(5 個 governance capability)、L2 子程序 sandbox。
 
 ---
 
@@ -37,6 +44,10 @@
 | [03-白話架構文件.md](03-白話架構文件.md) | `白話架構介紹.md` 的設計理念(籃球教練比喻) |
 | [04-治理spec多agent協作.md](04-治理spec多agent協作.md) | 3+1 agent 模式建立 `establish-project-lifecycle-spec` |
 | [05-Gemma實作.md](05-Gemma實作.md) | `gemma-reward-generator` change + Gemma 第一次寫的 reward |
+| [06-記憶與sandbox.md](06-記憶與sandbox.md) | `hermes-memory-layer` ── SQLite FTS5 長期記憶 + L2 子程序 sandbox |
+| [07-AST緩衝區.md](07-AST緩衝區.md) | `ast-buffer-manager` ── AST diff + buffer 政策純函式庫 |
+| [08-閉環整合.md](08-閉環整合.md) | `closed-loop-fitness` ── 7 步閉環引擎 + Mann-Whitney 統計工具 + pilot 結果 |
+| [09-archive與收尾.md](09-archive與收尾.md) | 7 個 change archive、19 個永久 capability、session 全景 |
 
 ---
 
@@ -63,28 +74,30 @@
 
 ## 主要技術 caveat / 待解問題
 
-1. **LLM reward 的 episode return 不能直接跟 baseline 比** ── Gemma 加了 shaping(中心 / 直立 / 終局放大),`episodes.jsonl["return"]` 是 shaped 值,baseline 是 env-native 值。`closed-loop-fitness` change 必須加「同時記錄 env_reward 與 shaped reward」才能 apples-to-apples
-2. **單 seed 的 baseline 結果可能是好運** ── seed=42 收斂 399 ep,但文獻典型 ~1200 ep。正式比較要跑滿 5 seeds(spec 已規定)
-3. **Gemma temperature 未設定** ── 預設 ~0.7,結果非完全可重現。`closed-loop-fitness` 階段需決定固定 vs 多樣性
-4. **CI 尚未建立** ── 目前靠 pre-push hook 與 reviewer 人工
-5. **uv 遷移未做** ── 治理 spec 規定用 uv,但目前還是 pip + requirements.txt;migration 排在後續 change
+1. **n=1 太吵,無法 claim memory 有效**:閉環 pilot 結果 181 → 90 → 168(非單調)。唯一單調是 crash rate(22% → 12% → 2%)。需 5 seed + Mann-Whitney 才能下結論 ── 留給實驗週
+2. **訓練 reward 跑在主程序內(L2 sandbox 是驗證隔離,不是訓練隔離)**:LLM 寫的 reward 第 800 ep 才出 bug 仍會影響主程序。L3 容器化(`reward-sandbox-isolation`)是 proposal-only,觸發條件式
+3. **Gemma temperature 未固定**:預設 ~0.7,同 seed 不同次跑 reward 不同。可重現性七件套已收錄 prompt+response log,但跨 run 結果仍有差異 ── 統計檢定時 sample size 要夠
+4. **CI 尚未建立**:目前靠 pre-push hook + reviewer 人工
+5. **uv 遷移未做**:治理 spec 規定 uv 為主,但 pyproject + requirements.txt 仍是 pip 風格
+6. **B1 hand-shaped reward 沒寫**:治理 spec 規定要非作者第三人寫,等組員協調
 
 ---
 
-## 後續路線圖(治理 spec 規定的順序)
+## 後續路線圖(本 session 完成狀態)
 
-1. ✅ `bootstrap-dqn-baseline` (本 session 完成)
-2. ✅ `establish-project-lifecycle-spec` (本 session 完成)
-3. 🔄 `gemma-reward-generator` (本 session 7/9 task group 完成,1500-ep run 正在跑)
-4. ⏳ `hermes-memory-layer` — 4 層記憶(SQLite FTS5 為主)
-5. ⏳ `ast-buffer-manager` — AST diff + replay buffer 處理
-6. ⏳ `closed-loop-fitness` — 7 步閉環 + 多輪迭代 + 跑全部 6 baseline × 5 seeds
+1. ✅ `bootstrap-dqn-baseline` ── archived(2026-05-12-bootstrap-dqn-baseline)
+2. ✅ `establish-project-lifecycle-spec` ── archived(2026-05-12-establish-project-lifecycle-spec)
+3. ✅ `gemma-reward-generator` ── archived(2026-05-12-gemma-reward-generator)
+4. ✅ `hermes-memory-layer` ── archived(2026-05-12-hermes-memory-layer),含 L2 sandbox
+5. ✅ `ast-buffer-manager` ── archived(2026-05-12-ast-buffer-manager)
+6. ✅ `closed-loop-fitness` ── archived(2026-05-12-closed-loop-fitness),pilot 驗證通過
+7. 📝 `reward-sandbox-isolation` ── proposal-only(觸發條件式)
 
 每一份 change 結束時都是**獨立可發表的命題**:
-- ② Gemma 證明「LLM 寫的 reward 能讓 DQN 收斂」── EUREKA 開源重現
-- ③ 記憶證明「有記憶的 LLM 比沒記憶更快收斂」── 新貢獻
-- ④ AST/Buffer 證明「換 reward 時保留有用經驗比清空好」── 對應災難性遺忘
-- ⑤ 整合 + 統計 = 論文 Section 4
+- ② Gemma 證明「LLM 寫的 reward 比 env-native 好」── ✅ EUREKA 開源重現(n=1)
+- ③ 記憶證明「有記憶的 LLM 比沒記憶更快收斂」── 🟡 機制驗證,實驗統計留給實驗週
+- ④ AST/Buffer 證明「換 reward 時保留有用經驗比清空好」── 🟡 機制驗證(pilot 觀察到正確分類)
+- ⑤ 整合 + 統計 ── ✅ 工具與引擎就緒,等實驗週填數據
 
 ---
 
