@@ -1,0 +1,6 @@
+torch~=2.5.0
+gymnasium[box2d]~=1.0
+numpy~=2.0
+tqdm~=4.66
+google-genai~=2.0
+python-dotenv~=1.0

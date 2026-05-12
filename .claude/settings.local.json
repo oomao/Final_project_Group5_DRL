@@ -6,7 +6,13 @@
       "Bash(python -c ' *)",
       "Bash(openspec --version)",
       "Bash(npx openspec *)",
-      "Bash(openspec init *)"
+      "Bash(openspec init *)",
+      "Bash(openspec --help)",
+      "Bash(openspec spec *)",
+      "Bash(openspec list *)",
+      "Bash(openspec new *)",
+      "Bash(file \"PPT/yt口白第二版\")",
+      "Bash(ls \"PPT/yt口白第二版\"*)"
     ]
   }
 }

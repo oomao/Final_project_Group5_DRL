@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-dqn"
+version = "0.1.0"
+description = "Memory-augmented LLM framework for automated DRL reward design"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Hermes-DQN Group 5" }]
+dependencies = [
+    "torch~=2.5.0",
+    "gymnasium[box2d]~=1.0",
+    "numpy~=2.0",
+    "tqdm~=4.66",
+    "google-genai~=2.0",
+    "python-dotenv~=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest~=8.0",
+    "ruff~=0.6",
+]
+
+[tool.setuptools.packages.find]
+include = ["hermes_dqn*"]
+exclude = ["openspec*", "docx*", "PPT*", "images*", "aichat_record*", "runs*"]

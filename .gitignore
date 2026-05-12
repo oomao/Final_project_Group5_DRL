@@ -1,0 +1,33 @@
+# Training artifacts
+runs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Model checkpoints
+*.pt
+*.pth
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets (API keys, etc.) — never commit
+.env
+.env.local
+*.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
