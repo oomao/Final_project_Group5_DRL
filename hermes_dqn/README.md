@@ -79,6 +79,20 @@ Apples-to-apples evaluation (greedy playback on env-native reward, 100 unseen ev
 | `gemma_mem_seed42` | llm + memory | hermes-sqlite-fts5 | `[]` (empty DB) | **235.21** | 80% | **3%** | 461 |
 | `gemma_mem_seed43` | llm + memory | hermes-sqlite-fts5 | `[1]` (reads seed 42) | 224.53 | 78% | **3%** | 312 |
 
+### Closed-loop pilot (`runs/pilot/B3-pilot/seed_42/`, 3 iterations, n=1)
+
+Full Hermes-DQN pipeline (memory + LLM + AST diff + buffer policy) for one seed:
+
+| Iter | Priors used | AST diff | Buffer action | env_native_mean | Success | Crash | Converge ep |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `[]` | — | — | 181.33 | 65% | 22% | 318 |
+| 2 | `[1]` | STRUCTURAL_DIFF (sim=0.71) | DECAY | 90.35 | 12% | 12% | 279 |
+| 3 | `[1, 2]` | TOTAL_REWRITE (sim=0.56) | CLEAR | 168.54 | 25% | **2%** | 347 |
+
+**Mechanism verified** (all 7 closed-loop steps fire per iteration). **Empirical signal** is too noisy at n=1 to claim memory helps or hurts — env_native_mean is non-monotonic (181 → 90 → 168). The only clean monotonic trend is crash_rate (22% → 12% → 2%), which is consistent with the broader "Gemma agents trade reward for safety" pattern from earlier runs.
+
+Statistical claim awaits the 6-condition × 5-seed run per `experiments-protocol` + `evaluation-criteria` specs. Total compute estimate: ~60 GPU-hours, deferred to "experiment week" before demo day.
+
 **What this shows (n=1, mechanism only — no statistical claim yet):**
 
 - **EUREKA open-source replication still holds**: every llm-source run beats `baseline_seed42` (162.72) by a wide margin
