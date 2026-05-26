@@ -16,10 +16,10 @@ __pycache__/
 *.pt
 *.pth
 
-# Virtual environments
-.venv/
-venv/
-env/
+# Virtual environments (root-anchored so it does NOT match hermes_dqn/env/)
+/.venv/
+/venv/
+/env/
 
 # Secrets (API keys, etc.) — never commit
 .env
