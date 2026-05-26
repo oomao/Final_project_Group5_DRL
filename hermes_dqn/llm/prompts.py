@@ -8,6 +8,105 @@ if TYPE_CHECKING:
     from hermes_dqn.memory.entry import MemoryEntry
 
 
+MOUNTAINCAR_TASK_SPEC = """\
+Environment: Gymnasium MountainCar-v0 (discrete actions).
+
+Observation (numpy.ndarray, shape=(2,), dtype=float32):
+  obs[0]  car position    (range [-1.2, 0.6]; goal is at >= 0.5, valley at -0.5)
+  obs[1]  car velocity    (range [-0.07, 0.07])
+
+Action (int in {0, 1, 2}):
+  0  push left
+  1  no push
+  2  push right
+
+Native env reward (passed in as env_reward):
+  -1 per timestep until the goal is reached (sparse "time penalty").
+  Episode terminates when position >= 0.5 (success) or 200 steps elapse (timeout).
+
+Goal: drive the underpowered car up the right hill to position >= 0.5. The
+engine cannot directly overpower gravity; the agent MUST rock back and forth
+to build momentum. Standard "solved" criterion is mean episode return >= -110
+over 100 trials (i.e., reach goal in average <110 steps).
+
+Reward-shaping notes:
+  - The native reward gives NO directional signal. Without shaping, DQN must
+    discover the rock-back-and-forth strategy from sparse goal reward alone.
+  - Productive shapings: bonus for height (position), bonus for absolute
+    velocity (encourage motion), bonus for crossing the valley to the right.
+  - WARNING: rewarding only position will trap the agent climbing-and-falling
+    on the right slope. Pair position bonus with velocity bonus or a goal
+    completion bonus.
+"""
+
+
+ACROBOT_TASK_SPEC = """\
+Environment: Gymnasium Acrobot-v1 (discrete actions).
+
+Observation (numpy.ndarray, shape=(6,), dtype=float32):
+  obs[0]  cos(theta1)          (first joint angle, vertical-down = +1)
+  obs[1]  sin(theta1)
+  obs[2]  cos(theta2)          (second joint angle, relative to first link)
+  obs[3]  sin(theta2)
+  obs[4]  theta1 angular velocity   (range about [-4*pi, 4*pi])
+  obs[5]  theta2 angular velocity   (range about [-9*pi, 9*pi])
+
+Action (int in {0, 1, 2}):
+  0  apply -1 torque to second joint
+  1  apply  0 torque
+  2  apply +1 torque
+
+Native env reward (passed in as env_reward):
+  -1 per timestep until the goal is reached (sparse "time penalty").
+  Termination: -cos(theta1) - cos(theta1 + theta2) > 1.0 (i.e., the tip of
+  the lower link swings above the horizontal pivot height). Step cap 500.
+
+Goal: swing the double pendulum's tip above a target height by pumping
+torque at the elbow joint. Like MountainCar, the actuator is underpowered;
+the agent must pump energy in over multiple swings. Standard "solved"
+criterion is mean episode return >= -100 over 100 trials.
+
+Reward-shaping notes:
+  - Native reward gives no signal until termination. Useful shapings:
+    bonus for tip height (use -cos(theta1) - cos(theta1+theta2), higher is
+    better), bonus for kinetic energy (encourage pumping).
+  - Be careful with angular velocity bonuses — too large can encourage
+    spinning in place without progress.
+"""
+
+
+CARTPOLE_TASK_SPEC = """\
+Environment: Gymnasium CartPole-v1 (discrete actions).
+
+Observation (numpy.ndarray, shape=(4,), dtype=float32):
+  obs[0]  cart position             (range approximately [-4.8, 4.8])
+  obs[1]  cart velocity
+  obs[2]  pole angle in radians     (0 = vertical; episode ends at |angle| > 12 deg)
+  obs[3]  pole angular velocity
+
+Action (int in {0, 1}):
+  0  push cart left
+  1  push cart right
+
+Native env reward (passed in as env_reward):
+  +1 for every timestep the pole stays upright. No bonus for landing pose,
+  no penalty for any action. The reward is sparse — every step is +1
+  regardless of how well-centered or how slow the pole is moving.
+
+Goal: keep the pole upright (|angle| < 12 deg) and the cart within bounds
+(|x| < 2.4) for as long as possible. Episode ends at termination or at the
+500-step cap (CartPole-v1). Standard "solved" criterion is mean episode
+return >= 475 over 100 trials.
+
+Reward-shaping notes for this env:
+  - The native reward is informative only about "alive"; you may want to
+    add denser signal (e.g. penalize large |angle|, large |x|, high
+    angular velocity) to help the agent learn faster.
+  - Do NOT directly return more than ~+10 per step — the buffer's TD-target
+    scaling assumes returns of order +1 per step.
+"""
+
+
 LUNARLANDER_TASK_SPEC = """\
 Environment: Gymnasium LunarLander-v3 (discrete actions).
 
@@ -84,9 +183,52 @@ def reward(obs, action, next_obs, env_reward, terminated, truncated, info):
 """
 
 
-_SYSTEM_PREAMBLE = """\
+FEW_SHOT_SHAPED_CARTPOLE = """\
+EXAMPLE 2 (light shaping — penalize tilt + off-center, on top of env reward):
+```python
+def reward(obs, action, next_obs, env_reward, terminated, truncated, info):
+    x = next_obs[0]
+    angle = next_obs[2]
+    tilt_penalty = abs(angle)            # radians; ~0 when vertical
+    off_center_penalty = abs(x) / 2.4    # normalized by termination bound
+    return float(env_reward) - 0.5 * tilt_penalty - 0.1 * off_center_penalty
+```
+"""
+
+
+FEW_SHOT_SHAPED_MOUNTAINCAR = """\
+EXAMPLE 2 (light shaping — reward height + speed, on top of env reward):
+```python
+def reward(obs, action, next_obs, env_reward, terminated, truncated, info):
+    pos = next_obs[0]
+    vel = next_obs[1]
+    # Bonus for being to the right of the valley (valley is at ~-0.5).
+    height_bonus = (pos + 0.5) * 0.1
+    # Bonus for absolute speed (encourage motion, helps escape valley).
+    speed_bonus = abs(vel) * 5.0
+    return float(env_reward) + height_bonus + speed_bonus
+```
+"""
+
+
+FEW_SHOT_SHAPED_ACROBOT = """\
+EXAMPLE 2 (light shaping — reward tip height, on top of env reward):
+```python
+def reward(obs, action, next_obs, env_reward, terminated, truncated, info):
+    cos_t1 = next_obs[0]
+    cos_t12 = next_obs[2] * next_obs[0] - next_obs[3] * next_obs[1]
+    # Tip height = -cos(theta1) - cos(theta1 + theta2); higher is better.
+    # Threshold for termination is +1.0; native return is 0 at termination.
+    tip_height = -cos_t1 - cos_t12
+    height_bonus = 0.1 * tip_height
+    return float(env_reward) + height_bonus
+```
+"""
+
+
+_SYSTEM_PREAMBLE_TEMPLATE = """\
 You are the reward-function author for a DQN agent learning Gymnasium's
-LunarLander-v3. Your job is to design a Python `reward` function that the
+{env_name}. Your job is to design a Python `reward` function that the
 agent will train against. A well-designed reward function will let the DQN
 converge faster and reach a higher final success rate than the native env
 reward alone.
@@ -95,6 +237,11 @@ Hermes-DQN is a memory-augmented framework that iteratively improves the
 reward function across multiple LLM iterations. In this iteration you will
 produce one candidate; future iterations may build on it.
 """
+
+
+# Backward-compat alias: any code that imported _SYSTEM_PREAMBLE got the
+# LunarLander preamble; preserve that exact string.
+_SYSTEM_PREAMBLE = _SYSTEM_PREAMBLE_TEMPLATE.format(env_name="LunarLander-v3")
 
 
 def _format_prior_attempts(prior_attempts: "list[MemoryEntry]") -> str:
@@ -127,15 +274,22 @@ def build_lunarlander_prompt(
     retry_context: str | None = None,
     force_fallback: bool = False,
     prior_attempts: "list[MemoryEntry] | None" = None,
+    env_name: str = "LunarLander-v3",
+    few_shot_shaped: str = FEW_SHOT_SHAPED,
 ) -> str:
     """Compose the full prompt for one Gemma generation attempt.
 
     When ``prior_attempts`` is non-empty, a "PRIOR HIGH-FITNESS ATTEMPTS" block
     is inserted after the task spec and before the few-shot examples. When
-    ``prior_attempts`` is None or empty, the output is byte-identical to the
+    ``prior_attempts`` is None or empty AND env_name == "LunarLander-v3" AND
+    few_shot_shaped == FEW_SHOT_SHAPED, the output is byte-identical to the
     gemma-reward-generator-era prompt for the same other inputs.
+
+    Pass ``env_name="CartPole-v1"`` + ``few_shot_shaped=FEW_SHOT_SHAPED_CARTPOLE``
+    + ``task_spec=CARTPOLE_TASK_SPEC`` to retarget the prompt to CartPole.
     """
-    parts: list[str] = [_SYSTEM_PREAMBLE, "TASK:", task_spec]
+    system_preamble = _SYSTEM_PREAMBLE_TEMPLATE.format(env_name=env_name)
+    parts: list[str] = [system_preamble, "TASK:", task_spec]
 
     if prior_attempts:
         parts.append(_format_prior_attempts(prior_attempts))
@@ -154,7 +308,7 @@ def build_lunarlander_prompt(
         )
     else:
         parts.append(FEW_SHOT_PASSTHROUGH)
-        parts.append(FEW_SHOT_SHAPED)
+        parts.append(few_shot_shaped)
 
     if retry_context and not force_fallback:
         parts.append(

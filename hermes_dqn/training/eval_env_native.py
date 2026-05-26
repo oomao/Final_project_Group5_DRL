@@ -22,13 +22,18 @@ def evaluate_on_env_native(
     run_dir: str | Path,
     n: int = 100,
     base_seed: int = 10000,
-    success_threshold: float = 200.0,
+    success_threshold: float | None = None,
 ) -> dict[str, Any]:
     """Run ``n`` greedy episodes; return mean/success/crash metrics.
 
-    The model and DQN config are loaded from ``run_dir``. The env is a fresh
-    ``LunarLander-v3`` with no reward wrapper, so reported metrics are the
-    env's native shaped return — directly comparable across training conditions.
+    The model, DQN config, and env_id are loaded from ``run_dir/config.json``.
+    The env is constructed fresh from ``env_id`` with no reward wrapper, so
+    reported metrics are the env's native return — directly comparable across
+    training conditions.
+
+    ``success_threshold`` defaults to the env's profile-defined threshold
+    (200.0 for LunarLander-v3, 475.0 for CartPole-v1). Pass an explicit value
+    to override.
     """
     run_dir = Path(run_dir)
     with (run_dir / "config.json").open("r", encoding="utf-8") as fp:
@@ -38,7 +43,16 @@ def evaluate_on_env_native(
     agent = DQNAgent(dqn_cfg, seed=cfg.get("seed", 42))
     agent.load(run_dir / "model_final.pt")
 
-    env = gym.make("LunarLander-v3")
+    env_id = cfg.get("env_id", "LunarLander-v3")
+    if success_threshold is None:
+        # Lazy import to keep eval_env_native lightweight when threshold is set explicitly.
+        from hermes_dqn.env.profiles import get_profile
+
+        try:
+            success_threshold = get_profile(env_id).success_threshold
+        except ValueError:
+            success_threshold = 200.0  # safe fallback for unknown envs
+    env = gym.make(env_id)
     env.action_space.seed(base_seed + n + 1)
 
     returns: list[float] = []

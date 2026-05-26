@@ -52,6 +52,7 @@ class TrainConfig:
     max_steps_per_episode: int = 1000
     out_dir: str | None = None
     reward_source: str = "env"
+    reward_file: str | None = None  # B1: load Python reward function from a file
     memory_db: str | None = "runs/memory.sqlite"
     memory_top_k: int = 5
     no_memory: bool = False
@@ -77,8 +78,12 @@ class TrainConfig:
             if not hasattr(cfg.dqn, key):
                 raise ValueError(f"Unknown DQN config field: {key}")
             setattr(cfg.dqn, key, value)
-        if cfg.reward_source not in ("env", "llm"):
-            raise ValueError(f"reward_source must be 'env' or 'llm' (got {cfg.reward_source!r})")
+        if cfg.reward_source not in ("env", "llm", "file"):
+            raise ValueError(
+                f"reward_source must be 'env', 'llm', or 'file' (got {cfg.reward_source!r})"
+            )
+        if cfg.reward_source == "file" and not cfg.reward_file:
+            raise ValueError("reward_source='file' requires reward_file to be set")
         return cfg
 
     def to_dict(self) -> dict:
@@ -117,6 +122,24 @@ def _resolve_reward(config: TrainConfig, run_dir: Path):
     """
     if config.reward_source == "env":
         return _ENV_STUB_REWARD_SRC, None, None
+
+    if config.reward_source == "file":
+        # B1-handcrafted: load reward source from a Python file and compile it.
+        # No memory layer is involved (third-party hand-shaped reward is a fixed
+        # baseline, not part of any iterative LLM loop).
+        from hermes_dqn.llm import compile_reward
+
+        src_path = Path(config.reward_file)  # type: ignore[arg-type]
+        if not src_path.exists():
+            print(f"[FAIL] reward_file does not exist: {src_path}", file=sys.stderr)
+            sys.exit(1)
+        src = src_path.read_text(encoding="utf-8")
+        fn = compile_reward(src, _unsafe_inline=config.unsafe_inline_compile)
+        print(
+            f"[file] Loaded reward from {src_path} ({len(src.splitlines())} lines).",
+            flush=True,
+        )
+        return src, fn, None
 
     if config.reward_source != "llm":
         raise ValueError(f"Unknown reward_source: {config.reward_source!r}")
@@ -217,16 +240,18 @@ def train(
     reward_fn_path.write_bytes(reward_src_bytes)
     reward_fn_sha256 = hashlib.sha256(reward_src_bytes).hexdigest()
 
-    config_data = config.to_dict()
-    config_data["reward_fn_sha256"] = reward_fn_sha256
-    with (run_dir / "config.json").open("w", encoding="utf-8") as fp:
-        json.dump(config_data, fp, indent=2)
-
-    env = make_env(seed=config.seed, reward_fn=reward_fn)
+    # Build env FIRST so we can capture its true obs_dim / n_actions into the
+    # config.json (env-native eval reads them back to reconstruct the agent).
+    env = make_env(seed=config.seed, reward_fn=reward_fn, env_id=config.env_id)
     obs_space = env.observation_space
     act_space = env.action_space
     config.dqn.obs_dim = int(obs_space.shape[0])
     config.dqn.n_actions = int(act_space.n)
+
+    config_data = config.to_dict()
+    config_data["reward_fn_sha256"] = reward_fn_sha256
+    with (run_dir / "config.json").open("w", encoding="utf-8") as fp:
+        json.dump(config_data, fp, indent=2)
 
     agent = DQNAgent(config.dqn, seed=config.seed)
     if pre_loaded_buffer is not None:
@@ -335,9 +360,15 @@ def _build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--out-dir", type=str, default=None, help="Override run output directory.")
     p.add_argument(
         "--reward-source",
-        choices=["env", "llm"],
+        choices=["env", "llm", "file"],
         default=None,
-        help="Reward source: 'env' (native, baseline) or 'llm' (Gemma-generated). Default: env.",
+        help="Reward source: 'env' (native), 'llm' (Gemma), or 'file' (load from --reward-file).",
+    )
+    p.add_argument(
+        "--reward-file",
+        type=str,
+        default=None,
+        help="Path to a Python reward source file (used when --reward-source file). For B1.",
     )
     p.add_argument(
         "--memory-db",
@@ -367,6 +398,12 @@ def _build_argparser() -> argparse.ArgumentParser:
         default=None,
         help="How many greedy env-native eval episodes after training. Default: 100.",
     )
+    p.add_argument(
+        "--env-id",
+        type=str,
+        default=None,
+        help="Gym env id. Default: LunarLander-v3. CartPole-v1 also supported.",
+    )
     return p
 
 
@@ -385,6 +422,8 @@ def main() -> None:
         overrides["out_dir"] = args.out_dir
     if args.reward_source is not None:
         overrides["reward_source"] = args.reward_source
+    if args.reward_file is not None:
+        overrides["reward_file"] = args.reward_file
     if args.memory_db is not None:
         overrides["memory_db"] = args.memory_db
     if args.memory_top_k is not None:
@@ -395,6 +434,8 @@ def main() -> None:
         overrides["unsafe_inline_compile"] = True
     if args.eval_n_episodes is not None:
         overrides["eval_n_episodes"] = args.eval_n_episodes
+    if args.env_id is not None:
+        overrides["env_id"] = args.env_id
 
     config = TrainConfig.from_overrides(overrides)
     run_dir = train(config)

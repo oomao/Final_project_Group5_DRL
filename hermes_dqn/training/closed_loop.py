@@ -48,27 +48,62 @@ def _generate_reward_for_iter(
     memory_db: str | Path,
     memory_top_k: int,
     seed: int,
+    no_memory: bool = False,
+    env_id: str = "LunarLander-v3",
 ) -> tuple[str, "object", list[int]]:
     """Pull priors from memory, generate via Gemma, validate, return (src, fn, prior_ids).
 
     Raises ``RewardGenerationError`` if all 3 retries fail — caller decides how to
     handle (typically: mark iter as failed, continue to next).
+
+    When ``no_memory=True`` (B3-no-memory ablation), the memory store is NOT
+    queried and priors are always ``[]``. This isolates the contribution of
+    the 4-tier memory layer from the rest of the closed loop.
+
+    ``env_id`` selects the task spec + few-shot example for the Gemma prompt
+    via the env profile registry. Default LunarLander-v3 preserves byte-identical
+    behavior for existing call sites.
     """
     from dotenv import load_dotenv
 
+    from hermes_dqn.env.profiles import get_profile
     from hermes_dqn.llm import LLMRewardClient, compile_reward
+    from hermes_dqn.llm.prompts import (
+        FEW_SHOT_SHAPED,
+        FEW_SHOT_SHAPED_ACROBOT,
+        FEW_SHOT_SHAPED_CARTPOLE,
+        FEW_SHOT_SHAPED_MOUNTAINCAR,
+    )
 
     load_dotenv()
     client = LLMRewardClient()
+    profile = get_profile(env_id)
 
-    with MemoryStore(memory_db) as store:
-        priors = store.top_k_by_fitness(k=memory_top_k, fitness_floor=float("-inf"))
-        prior_ids = [int(p.id) for p in priors if p.id is not None]
+    if no_memory:
+        priors = []
+        prior_ids: list[int] = []
+    else:
+        with MemoryStore(memory_db) as store:
+            priors = store.top_k_by_fitness(k=memory_top_k, fitness_floor=float("-inf"))
+            prior_ids = [int(p.id) for p in priors if p.id is not None]
+
+    # Pick the env-appropriate shaped few-shot example. Each env has its own
+    # obs index semantics, so reusing a wrong example would mislead Gemma.
+    _few_shot_by_env = {
+        "LunarLander-v3": FEW_SHOT_SHAPED,
+        "CartPole-v1": FEW_SHOT_SHAPED_CARTPOLE,
+        "MountainCar-v0": FEW_SHOT_SHAPED_MOUNTAINCAR,
+        "Acrobot-v1": FEW_SHOT_SHAPED_ACROBOT,
+    }
+    few_shot = _few_shot_by_env.get(env_id, FEW_SHOT_SHAPED)
 
     attempts_log = iter_dir / "llm_attempts.jsonl"
     src = client.generate(
+        task_spec=profile.task_spec,
         attempts_log_path=attempts_log,
         memory=priors or None,
+        env_name=env_id,
+        few_shot_shaped=few_shot,
     )
     fn = compile_reward(src)
     return src, fn, prior_ids
@@ -96,8 +131,25 @@ def run_closed_loop(
     eval_n_episodes: int = 100,
     memory_top_k: int = 5,
     out_root: str | Path = "runs",
+    no_memory: bool = False,
+    no_ast: bool = False,
+    env_id: str = "LunarLander-v3",
 ) -> ClosedLoopSummary:
-    """Run the full Hermes-DQN closed loop for one (condition, seed)."""
+    """Run the full Hermes-DQN closed loop for one (condition, seed).
+
+    Ablation flags:
+        no_memory: skip the Hermes 4-tier memory layer (no priors loaded,
+            no post-iter memory writes). For B3-no-memory.
+        no_ast: skip AST diff + apply_policy. The replay buffer is still
+            inherited across iterations but NOT mutated by any policy —
+            equivalent to "always KEEP". For B3-no-AST.
+        env_id: gym env id. Looked up via env-profiles registry for
+            obs_dim + task_spec + few-shot. Default LunarLander-v3 keeps
+            existing behavior byte-identical.
+    """
+    from hermes_dqn.env.profiles import get_profile
+
+    profile = get_profile(env_id)
     seed_dir = Path(out_root) / exp_name / condition_id / f"seed_{seed:02d}"
     seed_dir.mkdir(parents=True, exist_ok=True)
     if memory_db is None:
@@ -127,6 +179,8 @@ def run_closed_loop(
                 memory_db=memory_db,
                 memory_top_k=memory_top_k,
                 seed=seed,
+                no_memory=no_memory,
+                env_id=env_id,
             )
         except BaseException as e:
             wall = time.time() - iter_start
@@ -158,10 +212,10 @@ def run_closed_loop(
             prev_iter_dir = None
             continue
 
-        # ---- Step 3: AST diff ----
+        # ---- Step 3: AST diff (skipped under no_ast ablation) ----
         diff_dict: dict | None = None
         action: BufferAction | None = None
-        if prev_reward_src is not None:
+        if prev_reward_src is not None and not no_ast:
             diff = diff_rewards(prev_reward_src, reward_src)
             diff_dict = {
                 "kind": diff.kind,
@@ -170,16 +224,16 @@ def run_closed_loop(
             }
             action = decide_policy(diff)
 
-        # ---- Step 4: Buffer policy on inherited buffer ----
+        # ---- Step 4: Buffer policy on inherited buffer (no-op under no_ast) ----
         pre_loaded_buffer: ReplayBuffer | None = None
         if prev_iter_dir is not None:
             pre_loaded_buffer = _make_buffer_from_prev(
                 prev_iter_dir,
                 capacity=100_000,  # MUST match DQNConfig.buffer_capacity
-                obs_dim=8,
+                obs_dim=profile.obs_dim,
                 seed=seed,
             )
-            if action is not None:
+            if action is not None and not no_ast:
                 apply_policy(pre_loaded_buffer, action, decay_factor=decay_factor)
 
         # ---- Step 5: DQN train (env-native eval is inside train()) ----
@@ -192,11 +246,12 @@ def run_closed_loop(
                 "reward_source": "llm",
                 "memory_db": str(memory_db),
                 "memory_top_k": memory_top_k,
-                "no_memory": False,
+                "no_memory": no_memory,
                 "eval_n_episodes": eval_n_episodes,
+                "env_id": env_id,
             }
         )
-        config.memory_state = "hermes-sqlite-fts5"
+        config.memory_state = "none" if no_memory else "hermes-sqlite-fts5"
         config.memory_priors_used = prior_ids
 
         try:
@@ -244,19 +299,22 @@ def run_closed_loop(
 
         report = FitnessEvaluator().evaluate(iter_dir / "episodes.jsonl")
 
-        entry = MemoryEntry(
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            run_dir=str(iter_dir),
-            reward_fn_sha256=sha,
-            reward_code=reward_src,
-            converge_episode=report.converge_episode,
-            mean_reward_last100=report.mean_reward_last100,
-            success_rate=report.success_rate,
-            env_native_mean=env_native_mean,
-            env_native_success=env_native_success,
-        )
-        with MemoryStore(memory_db) as store:
-            new_id = store.write(entry)
+        if no_memory:
+            new_id = None
+        else:
+            entry = MemoryEntry(
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                run_dir=str(iter_dir),
+                reward_fn_sha256=sha,
+                reward_code=reward_src,
+                converge_episode=report.converge_episode,
+                mean_reward_last100=report.mean_reward_last100,
+                success_rate=report.success_rate,
+                env_native_mean=env_native_mean,
+                env_native_success=env_native_success,
+            )
+            with MemoryStore(memory_db) as store:
+                new_id = store.write(entry)
 
         wall = time.time() - iter_start
         summary.iterations.append(
@@ -274,10 +332,12 @@ def run_closed_loop(
                 wall_time_s=round(wall, 2),
             )
         )
+        mem_id_str = "-" if new_id is None else str(new_id)
+        diff_str = diff_dict["kind"] if diff_dict else ("no-ast" if no_ast and iter_idx > 1 else "first")
         print(
             f"[iter {iter_idx}/{n_iterations}] OK env_native_mean={env_native_mean:.2f} "
-            f"success={env_native_success:.2%} wall={wall:.1f}s memory_id={new_id} "
-            f"diff={diff_dict['kind'] if diff_dict else 'first'}",
+            f"success={env_native_success:.2%} wall={wall:.1f}s memory_id={mem_id_str} "
+            f"diff={diff_str}",
             flush=True,
         )
 
@@ -301,6 +361,22 @@ def _build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--eval-n-episodes", type=int, default=100)
     p.add_argument("--memory-top-k", type=int, default=5)
     p.add_argument("--out-root", type=str, default="runs")
+    p.add_argument(
+        "--no-memory",
+        action="store_true",
+        help="Disable Hermes 4-tier memory (B3-no-memory ablation). Priors always [], no memory writes.",
+    )
+    p.add_argument(
+        "--no-ast",
+        action="store_true",
+        help="Disable AST diff + buffer policy (B3-no-AST ablation). Buffer passes through unchanged.",
+    )
+    p.add_argument(
+        "--env-id",
+        type=str,
+        default="LunarLander-v3",
+        help="Gym env id. Looked up via env-profiles registry. Default LunarLander-v3.",
+    )
     return p
 
 
@@ -317,6 +393,9 @@ def main() -> None:
         eval_n_episodes=args.eval_n_episodes,
         memory_top_k=args.memory_top_k,
         out_root=args.out_root,
+        no_memory=args.no_memory,
+        no_ast=args.no_ast,
+        env_id=args.env_id,
     )
     print(
         f"\n[OK] Closed loop complete: {len(summary.iterations)} iter(s), "

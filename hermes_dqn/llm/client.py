@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -22,14 +23,24 @@ from typing import TYPE_CHECKING
 from google import genai
 
 from hermes_dqn.llm.compile import RewardCompileError, compile_reward
-from hermes_dqn.llm.prompts import LUNARLANDER_TASK_SPEC, build_lunarlander_prompt
+from hermes_dqn.llm.prompts import (
+    FEW_SHOT_SHAPED,
+    LUNARLANDER_TASK_SPEC,
+    build_lunarlander_prompt,
+)
 
 if TYPE_CHECKING:
     from hermes_dqn.memory.entry import MemoryEntry
 
 
 _DEFAULT_MODEL = "gemma-4-31b-it"
-_MAX_ATTEMPTS = 3
+_MAX_ATTEMPTS = 6  # bumped from 3 after observing 24% iter-failure rate from
+# transient Gemma 500/503 server errors during the first `final` run.
+
+# Backoff schedule (seconds) between API-error retries. Compile errors do NOT
+# wait — the prompt is re-issued immediately with the error appended as context.
+# Length must be >= _MAX_ATTEMPTS - 1.
+_API_BACKOFF_S = [5, 10, 30, 60, 120]
 
 
 @dataclass
@@ -98,6 +109,8 @@ class LLMRewardClient:
         task_spec: str = LUNARLANDER_TASK_SPEC,
         attempts_log_path: str | Path | None = None,
         memory: "list[MemoryEntry] | None" = None,
+        env_name: str = "LunarLander-v3",
+        few_shot_shaped: str = FEW_SHOT_SHAPED,
     ) -> str:
         """Return validated reward-function source code as a string.
 
@@ -105,6 +118,9 @@ class LLMRewardClient:
         section is added to the prompt summarizing those entries. ``memory=None``
         and ``memory=[]`` both produce the gemma-reward-generator-era behavior
         (no prior-attempts section).
+
+        ``env_name`` + ``few_shot_shaped`` retarget the prompt to a non-LunarLander
+        env (e.g. CartPole). Defaults preserve byte-identical LunarLander behavior.
 
         Raises ``RewardGenerationError`` after _MAX_ATTEMPTS failures.
         """
@@ -119,6 +135,8 @@ class LLMRewardClient:
                 retry_context=retry_context,
                 force_fallback=force_fallback,
                 prior_attempts=prior_attempts,
+                env_name=env_name,
+                few_shot_shaped=few_shot_shaped,
             )
 
             try:
@@ -138,6 +156,16 @@ class LLMRewardClient:
                     )
                 )
                 retry_context = f"previous API call raised {type(e).__name__}: {e}"
+                # Exponential backoff for transient server errors (500/503) and
+                # rate limits (429). No-op on the final attempt.
+                if attempt_idx < _MAX_ATTEMPTS:
+                    wait_s = _API_BACKOFF_S[min(attempt_idx - 1, len(_API_BACKOFF_S) - 1)]
+                    print(
+                        f"[llm] API attempt {attempt_idx}/{_MAX_ATTEMPTS} failed "
+                        f"({type(e).__name__}); sleeping {wait_s}s before retry...",
+                        flush=True,
+                    )
+                    time.sleep(wait_s)
                 continue
 
             source = _extract_code_block(response_text)
