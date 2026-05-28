@@ -134,6 +134,7 @@ def run_closed_loop(
     no_memory: bool = False,
     no_ast: bool = False,
     env_id: str = "LunarLander-v3",
+    dqn_variant: str = "vanilla",
 ) -> ClosedLoopSummary:
     """Run the full Hermes-DQN closed loop for one (condition, seed).
 
@@ -238,6 +239,15 @@ def run_closed_loop(
 
         # ---- Step 5: DQN train (env-native eval is inside train()) ----
         sha = hashlib.sha256(reward_src.encode("utf-8")).hexdigest()
+        # Translate the variant name into DQNConfig booleans (same mapping as
+        # train.py's CLI handler).
+        _variant_map = {
+            "vanilla":         (False, False),
+            "double":          (True,  False),
+            "dueling":         (False, True),
+            "double_dueling":  (True,  True),
+        }
+        _use_double, _dueling = _variant_map.get(dqn_variant, (False, False))
         config = TrainConfig.from_overrides(
             {
                 "seed": seed + (iter_idx - 1) * 1000,  # distinct env resets per iter
@@ -249,6 +259,8 @@ def run_closed_loop(
                 "no_memory": no_memory,
                 "eval_n_episodes": eval_n_episodes,
                 "env_id": env_id,
+                "use_double_dqn": _use_double,
+                "dueling": _dueling,
             }
         )
         config.memory_state = "none" if no_memory else "hermes-sqlite-fts5"
@@ -377,6 +389,14 @@ def _build_argparser() -> argparse.ArgumentParser:
         default="LunarLander-v3",
         help="Gym env id. Looked up via env-profiles registry. Default LunarLander-v3.",
     )
+    p.add_argument(
+        "--dqn-variant",
+        type=str,
+        choices=["vanilla", "double", "dueling", "double_dueling"],
+        default="vanilla",
+        help="DQN agent variant for the per-iter training. Default: vanilla. "
+        "double=van Hasselt 2016; dueling=Wang 2016; double_dueling=both.",
+    )
     return p
 
 
@@ -396,6 +416,7 @@ def main() -> None:
         no_memory=args.no_memory,
         no_ast=args.no_ast,
         env_id=args.env_id,
+        dqn_variant=args.dqn_variant,
     )
     print(
         f"\n[OK] Closed loop complete: {len(summary.iterations)} iter(s), "

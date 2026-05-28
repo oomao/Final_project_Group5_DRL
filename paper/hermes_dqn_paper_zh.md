@@ -1,0 +1,351 @@
+# Hermes-DQN:記憶擴增之大型語言模型獎勵設計何時對 DQN 有效?四環境分析
+
+**匿名作者**
+*為審稿需要,單位資訊暫予隱去*
+
+---
+
+## Abstract
+
+EUREKA (Ma et al., ICLR 2024) 已指出大型語言模型 (Large Language Model, LLM) 所撰寫的獎勵函數 (reward function) 可在 83% 的任務上勝過人工調校的塑形獎勵 (shaping reward)。延續此一發現,後續研究普遍預設此一作法可順利推廣,並提出三項擴增方向:其一是改採開源 LLM 以降低成本與依賴,其二是加入跨迭代記憶 (cross-iteration memory) 以促進精進,其三是強化重播緩衝區 (replay buffer) 以維持訓練穩定。本論文提出「Hermes-DQN」並一次整合上述三項擴增:採用 Google Gemma 4 31B 作為獎勵作者、運用 Nous Research Hermes Agent 啟發之四層級記憶架構 (Procedural / Semantic / Episodic / Working),以及一個感知抽象語法樹 (Abstract Syntax Tree, AST) 之重播緩衝管理器。實驗於 Gymnasium 四個古典控制環境 (LunarLander-v3、CartPole-v1、MountainCar-v0、Acrobot-v1) 上,以六種條件、每條件五個隨機種子進行系統性消融研究。結果呈現出「任務相依性反轉」(task-dependent reversal):在三個稀疏獎勵 (sparse reward) 環境中,B3-hermes-full 較原生基準 (vanilla baseline) 提升約 32–116%,其中 2/3 達 p<0.05 統計顯著;而在唯一的密集獎勵 (dense reward) 環境中,Hermes 與原生基準在統計上無差異,且記憶機制反而與績效下降相關 (p=0.0317、−38%)。變異性指紋同步翻轉:於本實驗條件下,Hermes 於物理簡單的稀疏環境上極度穩定 (std=3–4),於塑形空間豐富的密集環境上卻呈現高變異 (std=91,並出現一個近乎崩潰的種子)。本研究據此指出:LLM 撰寫之獎勵設計在所測試之配置下並非通用工具,其價值受制於主任務之獎勵稀疏程度,並建議將「獎勵密度」(reward density) 作為其適用性之候選預測指標。
+
+**關鍵字**:深度強化學習;LLM 作為獎勵作者;開源大型語言模型;消融研究;跨任務泛化
+
+---
+
+## 1. Introduction
+
+深度強化學習 (Deep Reinforcement Learning, DRL) 長期受制於獎勵函數設計問題。稀疏的環境獎勵會使智能體 (agent) 難以收斂,過度塑形的獎勵又會引入不易察覺的偏誤,進而破壞訓練穩定性。實務上仰賴人工反覆調整塑形項的作法,並不具備可擴展性。
+
+EUREKA (Ma et al., 2024) 首先示範了 GPT-4 能撰寫出在 83% 的 Isaac Gym 任務上優於人工設計的獎勵函數,平均改善幅度達 52%。後續研究沿著兩個方向持續推進:
+
+1. **以開源 LLM 取代商用 API**:CARD (Sun et al., 2024) 與 LEARN-Opt (Cardenoso & Caarls, 2025) 均指出封閉式 API 不利於可重現性與離線部署。
+2. **引入跨迭代記憶**:Stanford HAI《AI Index 2026》報告指出,OSWorld 基準的整體準確率在年度之間自約 12% 提升至 66.3%,記憶架構為其中促成此一進展的關鍵之一;Nous Research 的 Hermes Agent 進一步提出四層級記憶分類——Procedural (SKILL.md)、Semantic (USER.md、MEMORY.md)、Episodic (sessions/ 配合 FTS5)、Working (作用中之上下文)——並能改善 LLM 智能體在跨任務情境下的可重用技能習得。
+
+本研究將上述兩條主線整合為「Hermes-DQN」:以開源 LLM (Gemma 4 31B) 撰寫獎勵函數;以四層記憶架構 (Procedural / Semantic / Episodic / Working) 賦予其跨迭代學習能力;並以感知 AST 之重播緩衝管理器抑制獎勵變動所引發之災難性遺忘 (catastrophic forgetting) (GB-DQN; Lee & Lee, 2025)。
+
+**開源 LLM 對獎勵設計流程之意義**。封閉式 API 對 LLM-as-reward 管線而言至少帶來三項可重現性風險:(i) 供應商可在不通知使用者的情況下更新底層模型,使論文所報告之數值與後續重做之間失去可追溯之對應;(ii) 每次呼叫之延遲與費用會限制研究可負擔的種子數與迭代次數,而這恰恰是變異性導向 (variance-aware) 之研究方法所必須付出的代價;(iii) 離線或氣隙隔離 (air-gapped) 之部署情境 (工業控制、國防、設備端機器人) 無法將環境狀態送往外部服務。Gemma 4 31B 等開源權重模型可同時規避此三項風險。所付出的代價為其抽樣特性與 GPT-4 不同——而正如第 6 節所示,此一差異與獎勵稀疏度之間存在不易察覺的交互作用。
+
+**記憶機制之價值為何需要明確檢驗**。在 LLM 智能體相關文獻中,記憶常被預設為「嚴格擴增」:更多脈絡、更多歷史範例、更多「情境內精進」(in-context refinement)。然而於 LLM-as-reward 設定下,「保留記憶 vs. 不保留記憶,其餘條件相同」之直接對比,尚未見諸具備統計報告之多環境系統性研究。主流敘事——更多迭代與更豐富之先驗將產生更佳之獎勵函數——雖屬合理,但屬於預設而非檢驗。本研究即補上此項檢驗。
+
+本文之核心問題為:**此一複合系統是否能在主流 DRL 基準任務上一致地改善獎勵設計;抑或 EUREKA 式作法本質上具有任務相依性?**
+
+實驗在 Gymnasium 之四個古典控制任務 (LunarLander-v3、CartPole-v1、MountainCar-v0、Acrobot-v1) 上進行,每環境 6 種條件、每條件 5 個種子,合計 120 次完整訓練。
+
+**全文路線**。第 2 節整理 LLM 撰寫獎勵、記憶擴增之 LLM 智能體與重播緩衝管理三條相關文獻軸線。第 3 節說明三模組架構、閉環迭代流程、六項消融條件、四環境選擇,以及統計方法。第 4 節以四張表與四個分環境小節報告主要獎勵設計消融 (Part 1);第 5 節報告一項補充性之 DQN 變體研究 (Part 2),檢驗上述發現能否跨價值型智能體 (value-based agent) 遷移;第 6 節討論反轉現象、深入分析一個具體失敗模式、刻畫變異性指紋,並列出限制與可證偽預測;第 7 節作結。
+
+**本論文之四項貢獻** (語氣從嚴):
+
+1. EUREKA 式之 LLM 獎勵撰寫流程被延伸至「開源 Gemma 4 31B」;於本研究所測試之配置中,此一替代在稀疏獎勵任務上具有可行性。
+2. 在密集獎勵之 LunarLander 上,**跨迭代記憶機制與績效下降相關**,p=0.0317——為此一脈絡下,首例達統計顯著之負向結果。
+3. 一組**變異性指紋**(variance signature) 被刻畫出來:Hermes 之表現與主任務之獎勵結構有關——物理簡單之稀疏任務上產出高度一致之智能體 (std=3–4),塑形空間豐富之任務上則產出高變異之智能體 (std=91+)。
+4. 「獎勵密度」(reward density) 被提出為判斷 LLM 獎勵設計與記憶擴增是否有益之候選預測指標。
+
+---
+
+## 2. Related Work
+
+**LLM 撰寫之獎勵設計**。EUREKA (Ma et al., 2024) 結合 GPT-4 與類 CMA-ES 之搜尋機制撰寫獎勵函數,在 83% 的 Isaac Gym 任務上勝過人工基準,平均改善幅度約 52%。該設計仰賴封閉式商用 API 與 Isaac Gym 之連續控制套件,因此其作法能否延伸至開源權重模型、能否延伸至離散動作之古典控制,仍屬未定。Masadome 與 Harada (IEEJ 2025) 於 CartPole 上重現此一作法,並指出 LLM 撰寫之獎勵收斂速度快於手工調校之對照,但僅報告單一環境結果,且未單獨分離記憶之貢獻。CARD (Sun et al., 2024) 提出 Coder + Evaluator 框架,並結合軌跡偏好評估 (Trajectory Preference Evaluation),將獎勵生成與策略結果回饋串成閉環;惟其評估端本身為 LLM 評論員,而非實際 RL 智能體於原生獎勵下之回報。據作者所知,既有研究尚未透過「有記憶 vs. 無記憶」之直接比對,在多環境、多種子條件下單獨檢驗記憶機制之貢獻;本研究即補上此一比較。
+
+**記憶擴增之 LLM 智能體**。Nous Research 之 Hermes Agent (2026) 提出四層級記憶分類——Procedural (SKILL.md)、Semantic (USER.md、MEMORY.md)、Episodic (sessions/ 配合 FTS5)、Working (作用中之上下文)——並回報於自主工作流程基準上跨任務技能習得改善。Stanford HAI《AI Index 2026》報告指出 OSWorld 基準整體準確率在年度之間自約 12% 提升至 66.3%,記憶架構為其中促成此一進展的關鍵之一 (Stanford HAI, 2026)。傳統之經驗重播變體 (如 Isele & Cosgun, AAAI 2018) 亦顯示選擇性保留之記憶可提升多任務學習表現;惟此一脈絡之記憶層級為「狀態轉移」(transition) 而非「程式碼層級之獎勵函數」。LLM-as-author 脈絡下之既有記憶擴增研究多回報正向效應;本文則似為首次於此設定下觀察到達統計顯著之負向效應。
+
+**非穩態獎勵下之重播緩衝管理**。GB-DQN (Lee & Lee, 2025) 刻畫了獎勵變動所引發之 Bellman 算子漂移與災難性遺忘;其解法為梯度增強之 DQN,屬於價值函數面之改善。CHAIN 方法 (Tang & Berseth, 2024) 指出價值與策略 churn 之鏈鎖效應 (chain effect of value and policy churn) 會在目標分佈飄移時削弱學習穩定性。此二者皆與重播緩衝面之決策正交。本文提出之 AST 感知緩衝管理器 (KEEP / PARTIAL_KEEP / DECAY / CLEAR,依獎勵 AST 相似度決策) 取緩衝面之視角,其貢獻量化於第 4 節之消融結果。
+
+**獎勵塑形理論**。Ng、Harada 與 Russell (1999) 證明:**勢能式 (potential-based)** 之獎勵塑形可保持原 Markov 決策過程之最佳策略不變。此結論給出一個充分條件——塑形項須可表為「狀態勢能函數之差分」——在此條件下,加入塑形之安全性可被形式化保證。本研究管線中由 LLM 撰寫之塑形並未被約束在勢能式子類別內,此點亦為「記憶為何可能傷害績效」之一項原則性解釋:多次迭代後之 LLM 獎勵會逐步偏離勢能式子類別,因而無法保證仍保留原最佳策略。6.4 節將此點作為限制與後續工作再行討論。
+
+**DRL 基準任務**。本研究採用 Gymnasium 之古典控制套件。近期一份 LunarLander DQN 研究 (Singh et al., 2025) 回報原生 DQN 於預設超參數下在 LunarLander-v2 達約 92% 成功率;本研究於 v3 變體上採取類似設定。LLM-Explorer (Zhao et al., NeurIPS 2025) 則於 Atari 與 MuJoCo 上取得至多 +37.27% 之改善,惟其作法為以 LLM 引導「探索」而非撰寫獎勵。相對於該工作,本研究之主要差異在於針對「記憶機制」之跨環境消融深度。
+
+---
+
+## 3. Method
+
+### 3.1 Architecture overview
+
+Hermes-DQN 由三個耦合模組組成:Gemma 獎勵生成器、四層級記憶儲存,以及感知 AST 之重播緩衝管理器。圖 1 整理三者之輸入、輸出與閉環資料流。
+
+![系統架構:Gemma 獎勵生成器、四層級記憶與 AST 緩衝管理之資料流。](figures/fig1_architecture.png)
+
+三模組之介面分別如下。
+
+1. **獎勵生成器 (Gemma 4 31B)**。
+   - *輸入*:(a) 環境任務規格 (觀測索引、動作語意、原生獎勵結構);(b) 可選之「PRIOR HIGH-FITNESS ATTEMPTS」區塊,其內容為長期記憶中依適應度排序之前 k 筆嘗試與其分數;(c) 回應格式約束 (函數簽章、僅允許決定性 Python、禁止網路與檔案 I/O)。
+   - *輸出*:`reward(obs, action, next_obs, env_reward, terminated, truncated, info)` 之 Python 源碼,須通過語法良構與簽章對齊之驗證方可使用。
+   - *內部狀態*:呼叫之間無狀態;所有跨迭代訊息皆透過記憶區塊傳入。
+
+2. **四層級記憶**。依 Hermes Agent 之分類——Procedural (SKILL.md)、Semantic (USER.md 與 MEMORY.md)、Episodic (sessions/ 配合 FTS5)、Working (作用中之上下文)——每完成一次訓練迭代,即寫入一筆紀錄,內含獎勵原始碼、SHA-256、以及以原生獎勵衡量之適應度指標。Episodic 層保存逐迭代紀錄;Working 層則保存將被組裝為提示之 top-k 取回結果。讀取查詢以原生適應度為主排序,以時間先後解決平手。記憶模組對訓練之唯一副作用,即下一輪生成器所見之「先前嘗試」區塊。
+
+3. **AST 感知之重播緩衝管理器**。透過 Python `ast` 模組分別解析新舊獎勵原始碼,並將結構差異歸類為 IDENTICAL、SIGNATURE_ONLY (簽章不變、函式體變動)、STRUCTURAL_DIFF (控制流變動但多數運算元延續)、TOTAL_REWRITE (結構幾無重疊) 四類。此分類結果決定性地對應至 KEEP (完整保留)、PARTIAL_KEEP (依終止旗標與獎勵符號謂詞篩選保留)、DECAY (對每筆樣本套用 0.5 權重後保留)、CLEAR (清空緩衝重新累積) 四種策略之一。分類器與策略查表皆為兩個原始碼字串之純函數。
+
+### 3.2 Closed-loop iteration
+
+對於每一組 (環境、條件、種子),閉環會執行 5 次以下迭代:
+
+```
+1. memory.top_k_by_fitness(k=5) → priors
+2. Gemma.generate(task_spec, memory=priors) → reward_src
+3. AST.diff(prev_reward_src, reward_src) → diff_kind
+4. buffer_policy = decide(diff_kind); apply(prev_buffer, buffer_policy)
+5. DQN.train(reward_src, buffer, episodes=N) → trained_model
+6. eval_env_native(model, n=100 unseen seeds) → fitness
+7. memory.write(reward_src, fitness)
+```
+
+逐步以白話翻譯:第 1 步從歷史中取出表現最佳之過往嘗試;第 2 步請 LLM 寫出可能與過往不同之新獎勵函數;第 3 步在語法樹層面量測「變了多少」;第 4 步依此飄移程度決定是否要保留先前的經驗回放;第 5 步以新獎勵訓練一個全新 DQN 策略;第 6 步以環境原生 (未經塑形) 獎勵在另一組不相交種子上評估,以維持條件之間的可比性;第 7 步將新出之 (原始碼, 適應度) 寫回記憶以供下一輪取用。第 6 步固定採用「100 個未見種子 (10000–10099) × 環境原生獎勵」之設定,不論訓練條件為何;這是跨條件唯一公平之衡量基準,因塑形獎勵會在條件之間及迭代之間變動。
+
+### 3.3 Six conditions
+
+依 DRL 領域之標準消融研究實務 (Henderson et al., 2018),共設計六種條件:
+
+| 編號 | 獎勵來源 | 記憶 | AST 緩衝 | 迭代次數 |
+| --- | --- | --- | --- | --- |
+| B0-env-native | 環境原生獎勵 | — | — | 1 |
+| B1-handcrafted | 人工撰寫 | — | — | 1 |
+| B2-gemma-oneshot | 單次 Gemma 呼叫 | ∅ | ∅ | 1 |
+| **B3-hermes-full** | **Gemma + 記憶** | ✓ | ✓ | **5** |
+| B3-no-memory | 每次迭代重新呼叫 Gemma | ∅ | ✓ | 5 |
+| B3-no-AST | Gemma + 記憶,無 AST 管理 | ✓ | ∅ | 5 |
+
+各條件分別檢驗不同假設。**B0** 為每個環境建立「無塑形」之基準;**B1** 檢驗合理人工塑形是否已足夠,故任何 LLM 貢獻必須同時勝過 B0 與 B1;**B2** 檢驗單次 Gemma 呼叫是否已足以攫取大部分增益 (即「記憶是否必要」之問題);**B3-hermes-full** 為完整提案系統;**B3-no-memory** 以「每輪重新呼叫 Gemma 而不提供歷史」進行 5 輪迭代,在相同預算下分離出記憶機制本身之貢獻;**B3-no-AST** 保留記憶但停用 AST 緩衝決策 (緩衝固定為 KEEP),分離緩衝管理之貢獻。B3 系列條件執行 5 次閉環迭代;B0/B1/B2 僅執行單次訓練,以對應典型使用者首次嘗試之工作量。
+
+### 3.4 Environment selection
+
+實驗挑選了 Gymnasium 四個古典控制環境,涵蓋「獎勵密度」之兩端極值:
+
+| 環境 | 獎勵類型 | 觀測維度 | 動作數 | 「解題」門檻 |
+| --- | --- | --- | --- | --- |
+| LunarLander-v3 | **密集**(連續塑形) | 8 | 4 | mean ≥ 200 |
+| CartPole-v1 | 稀疏 (+1/存活步) | 4 | 2 | mean ≥ 475 |
+| MountainCar-v0 | 稀疏 (−1/步) | 2 | 3 | mean ≥ −110 |
+| Acrobot-v1 | 稀疏 (−1/步) | 6 | 3 | mean ≥ −100 |
+
+選擇此四環境之理由有三。其一是**獎勵密度之多樣性**:一個密集、三個稀疏之組合可在不改動其他變數下同時探討兩種獎勵情境。其二是**可重現性**:古典控制任務具備已知之最佳策略,且可於單張 GPU 上經濟地運行,使 5 種子 × 6 條件 × 4 環境 = 120 次完整訓練成為可行規模。其三是**動作空間之多樣性**:離散動作數涵蓋 2、3、4 三種,可降低「獎勵密度效應」被誤判為「動作空間大小效應」之混淆風險。
+
+### 3.5 Statistical methodology
+
+- **主要指標**:`env_native_mean`——以原生 (未經塑形) 獎勵在 100 個評估種子上之平均回報。
+- **檢定方法**:雙尾 Mann-Whitney U 檢定 (α=0.05)。
+- **信賴區間**:Bootstrap 法,5000 次再抽樣,95% 信賴水準。
+- **「勝出」判準** (三條件變體,參考自 Henderson et al., 2018):需同時滿足三條件——p<0.05、|Δmean|/|baseline|≥10%、信賴區間不重疊。
+- **種子保留**:每組條件保留全部 5 個種子,不剔除任何發散種子。需注意 Acrobot 之 B0 與 B1 條件中有 1–2 個崩潰種子 (env_native_mean ≤ −200) 並未剔除,此舉膨脹其變異數,並進而擴大其 Bootstrap 信賴區間。
+
+於 n=5 此一規模下選擇 Mann-Whitney U 與 Bootstrap 之理由,值得簡短說明。在小樣本下,參數檢定 (如 Student's t) 預設樣本近似常態分佈——此一假設僅以 5 個觀測值無從驗證,且對「一兩個種子發散」所造成之重尾分佈相當敏感。Mann-Whitney U 為非參數、僅依秩、於 n=5 表現穩定之檢定方法,代價為相對於正確指定之參數檢定統計力較低。Bootstrap 同樣不需分佈假設,而 5000 次再抽樣對 95% 區間於此樣本規模而言已屬充分。6.4 節將此一統計力限制明確列出:本研究僅對大效應 (Cohen's d ≥ 1) 具備穩定偵測能力。
+
+---
+
+## 4. Experiments — Part 1: Reward-Design Ablation
+
+### 4.1 Setup
+
+| 項目 | 內容 |
+| --- | --- |
+| 硬體 | NVIDIA RTX 4090 × 1、Windows 11、CUDA 12.1 |
+| Python / PyTorch | 3.11 / 2.5.1 |
+| DQN | 64×64 MLP、lr=5e-4、γ=0.99、batch=64、ε 於 50K 步內線性衰減、目標網路每 1000 步更新、replay 容量 100K |
+| 隨機種子 | 訓練:42、43、44、45、46;評估:10000–10099 (與訓練種子完全互斥) |
+| 總訓練次數 | 120 次 (4 環境 × 6 條件 × 5 種子) |
+
+### 4.2 Results
+
+**表 1:跨環境總表** (env_native_mean,n=5;**粗體** 代表相對 B0 之顯著勝出;*斜體* 代表相對 B3-no-memory 之顯著敗退)
+
+| 條件 | LunarLander | CartPole | MountainCar | Acrobot |
+| --- | --- | --- | --- | --- |
+| B0-env-native | 173.22 | 154.80 | −193.44 | −194.96 |
+| B1-handcrafted | 77.77 | 160.19 | −140.40 | −185.28 |
+| B2-gemma-oneshot | 152.65 | 187.64 | −153.09 | −83.21 |
+| B3-hermes-full | *153.56* | **334.44** | **−132.53** | −82.92 |
+| B3-no-memory | **248.77** | 243.21 | −168.55 | −83.23 |
+| B3-no-AST | 95.42 | 220.81 | −134.59 | −83.58 |
+
+![CartPole 全六條件之逐種子箱型圖;B3-hermes-full 中位數最高但四分位距較寬。](figures/fig6_cartpole_boxplot.png)
+
+**表 2:B3-hermes-full vs B0-env-native** (主要假設驗證)
+
+| 環境 | Hermes 平均 | B0 平均 | Δ | p | 判定 |
+| --- | --- | --- | --- | --- | --- |
+| LunarLander (密集) | 153.56 | 173.22 | −11.4% | 1.0000 | n.s. |
+| CartPole (稀疏) | 334.44 | 154.80 | **+116.1%** | **0.0317** | **WIN** |
+| MountainCar (稀疏) | −132.53 | −193.44 | **+31.5%** | **0.0112** | **WIN** |
+| Acrobot (稀疏) | −82.92 | −194.96 | +57.5% | 0.0952 | 近 WIN |
+
+![跨環境主結果:B3-hermes-full 與 B0-env-native 之百分比差距;稀疏正向、密集負向。](figures/fig2_headline.png)
+
+**表 3:B3-hermes-full vs B3-no-memory** (記憶效應)
+
+| 環境 | Hermes 平均 | NoMem 平均 | Δ | p | 方向 |
+| --- | --- | --- | --- | --- | --- |
+| LunarLander (密集) | 153.56 | 248.77 | **−38.3%** | **0.0317** | **記憶有害** |
+| CartPole (稀疏) | 334.44 | 243.21 | +37.5% | 0.2222 | 有助 (n.s.) |
+| MountainCar (稀疏) | −132.53 | −168.55 | +21.4% | 0.1425 | 有助 (n.s.) |
+| Acrobot (稀疏) | −82.92 | −83.23 | +0.4% | 0.7533 | 無效應 |
+
+**表 4:B3-hermes-full 之變異性指紋**
+
+| 環境 | 平均 | 標準差 | 範圍 | 詮釋 |
+| --- | --- | --- | --- | --- |
+| LunarLander | 153.56 | **91.40** | [11.60, 252.40] | 高變異;出現一個近零種子 |
+| CartPole | 334.44 | **113.18** | [175.23, 485.23] | 高變異,惟皆為正 |
+| MountainCar | −132.53 | **3.08** | [−135.87, −129.38] | 極端一致 |
+| Acrobot | −82.92 | **4.39** | [−89.98, −78.62] | 高度穩定 |
+
+### 4.2.1 LunarLander-v3 (dense reward)
+
+LunarLander 是本研究中唯一的密集獎勵環境,亦是唯一原生獎勵已足以提供有效學習訊號之環境。B0-env-native 取得 173.22 之平均回報,接近官方「解題」門檻 200。此一情境因而成為「在已具備充分訊號之獎勵上再加上 LLM 塑形」之自然壓力測試。表 2 顯示 B3-hermes-full (153.56) 與 B0 (173.22) 在統計上無差異 (p=1.0000)。表 3 之對比更具揭示性:B3-no-memory 達 248.77,已超過解題門檻;而 B3-hermes-full 反而下降至 153.56 (p=0.0317、−38.3%)。於此一配置下,記憶機制與顯著之績效下降相關。每種子變異亦印證此一觀察:B3-hermes-full 之 std=91.40,並含一個僅 11.60 之近零種子 (詳見圖 3 及 6.2 節對 seed_43 之討論);相較之下 B3-no-memory 之 std=14.66。
+
+### 4.2.2 CartPole-v1 (sparse, +1 per alive step)
+
+CartPole 為教科書級之稀疏獎勵任務,具明確之上限 (v1 上限為 500)。B0-env-native 之 154.80 遠未達上限;單純「每存活步 +1」之訊號太弱,原生 DQN 在訓練預算內難以穩定解出。B3-hermes-full 取得 334.44 (相對 B0 +116.1%、p=0.0317),為本研究全表中相對增幅最大之結果。此一勝出為真,但變異亦大:std=113.18、範圍 [175.23, 485.23]。圖 6 之箱型圖呈現各條件之分佈樣態,B3-hermes-full 相對於 B0、B1、B2 之上拉同時來自「中位數上移」與「尾部變寬」。CartPole 因此成為本研究中最清楚之示例:LLM 撰寫之獎勵塑形確實能解鎖一個原生 DQN 在 100 個評估種子下無法穩定解出之任務。
+
+### 4.2.3 MountainCar-v0 (sparse, −1 per step)
+
+MountainCar 展現本研究中最緊湊之變異指紋:B3-hermes-full 五個種子之 std=3.08,全部落於範圍 [−135.87, −129.38] 之內。B3-hermes-full 取得 −132.53 (相對 B0=−193.44 為 +31.5%、p=0.0112),五個種子幾乎收斂至同一數值。Gemma 在此環境上撰寫之「每步 +0.5 動量塑形」與文獻中常見之經典手工塑形相當接近,此一觀察與「單一目標任務允許接近最佳之塑形,而 LLM 能可靠地找出」之假設一致。圖 5 將 MountainCar 與 LunarLander 之逐迭代軌跡並列呈現,構成兩種獎勵情境下「穩定 vs. 混沌」之對比。
+
+### 4.2.4 Acrobot-v1 (sparse, −1 per step)
+
+Acrobot 是未能通過嚴格勝出判準之案例。B3-hermes-full 取得 −82.92 相對 B0 −194.96 (Δ=+57.5%),但 Mann-Whitney 之 p 為 0.0952——效應方向明確、效應量亦大,但未通過 α=0.05 之門檻。B0 五個種子中有兩個發散至 env_native_mean ≤ −200,膨脹其變異與 Bootstrap 區間;此屬 3.5 節「種子保留」原則所預期之情形之一。B2-gemma-oneshot (−83.21) 與 B3-no-memory (−83.23) 均與 B3-hermes-full 相當接近,顯示於 Acrobot 上任何合理之 LLM 撰寫塑形皆已足夠,記憶機制之邊際貢獻有限。變異亦低 (std=4.39),與 MountainCar 之穩定樣態一致。
+
+### 4.3 Cross-environment synthesis
+
+整體觀之,表 2 至表 4 描繪出一致而連貫之樣態。三個稀疏環境構成一族:B3-hermes-full 相對 B0 之增幅介於 +31.5% 至 +116.1%、記憶效應幅度小且不顯著、每種子變異普遍偏低 (MountainCar 與 Acrobot 之 std ≤ 4.4,CartPole 之 std=113.18 為唯一例外)。密集環境則單獨自成一族:B3-hermes-full 與 B0 統計上無差異、記憶效應幅度大且達顯著之負向、每種子變異高 (std=91.40)。將兩族明確分隔之維度為獎勵密度。需注意者,在本四環境面板中,「塑形空間 (豐富 vs. 貧乏)」與「獎勵密度 (密集 vs. 稀疏)」呈現部分混淆——LunarLander 與 CartPole 皆屬塑形空間豐富,但僅 LunarLander 為密集;6.4 節將此點列為限制,並指出後續加入 LunarLanderContinuous 可協助分離兩變數。
+
+---
+
+## 5. Experiments — Part 2: DQN-Variant Generalization
+
+### 5.1 Motivation and setup
+
+Part 1 全程採用原生 DQN (vanilla DQN; Mnih et al., 2015)。Part 2 則檢驗獎勵設計之貢獻能否遷移至更先進之價值型智能體 (value-based agent)。本實驗之設計為:固定獎勵管線——僅比較 B0-env-native 與 B3-hermes-full——並在三種 DQN 變體之間切換:vanilla (沿用 Part 1 之基準)、Double DQN (van Hasselt et al., 2016) 與 Dueling DQN (Wang et al., 2016)。四個環境皆納入評估,每格 n=5 個種子,採與 Part 1 相同之評估協定 (100 個未見種子、環境原生回報)。
+
+Double DQN 將動作選擇 (由線上網路 online network 負責) 與價值評估 (由目標網路 target network 負責) 解耦,藉此降低標準 DQN 目標值之最大化偏誤 (maximization bias)。Dueling DQN 則將 Q 網路拆解為狀態價值串流 (state-value stream) V(s) 與優勢串流 (advantage stream) A(s,a),再以 Q = V + (A − mean(A)) 重組。此二變體實作了 Rainbow 七項組件中之兩項;其餘組件留待 Future Work 處理。
+
+### 5.2 Results — Hermes vs baseline across variants
+
+![圖 7。Part 2 主結果:三種 DQN 變體、四個環境下之 B3-hermes-full 對 B0-env-native。MountainCar 在三種變體下皆呈現 Hermes 勝出;LunarLander 在任一變體下皆未勝出。](figures/fig7_part2_hermes_vs_b0.png)
+
+**表 5:Part 2——B3-hermes-full vs B0-env-native** (每格 n=5)
+
+| 環境 | 變體 | B0 平均 | Hermes 平均 | Δ | p | 判定 |
+| --- | --- | --- | --- | --- | --- | --- |
+| LunarLander (密集) | vanilla | 173.22 | 153.56 | −11.4% | 1.0000 | n.s. |
+| LunarLander (密集) | Double | 171.90 | 131.68 | −23.4% | 1.0000 | n.s. |
+| LunarLander (密集) | Dueling | 166.86 | 137.98 | −17.3% | 0.6905 | n.s. |
+| CartPole (稀疏) | vanilla | 154.80 | 334.44 | +116.1% | 0.0317 | WIN |
+| CartPole (稀疏) | Double | 182.13 | 388.60 | +113.4% | 0.1508 | n.s. |
+| CartPole (稀疏) | Dueling | 227.22 | 315.99 | +39.1% | 0.2492 | n.s. |
+| MountainCar (稀疏) | vanilla | −193.44 | −132.53 | +31.5% | 0.0112 | WIN |
+| MountainCar (稀疏) | Double | −195.16 | −134.74 | +31.0% | 0.0097 | WIN |
+| MountainCar (稀疏) | Dueling | −198.70 | −146.89 | +26.1% | 0.0449 | WIN |
+| Acrobot (稀疏) | vanilla | −194.96 | −82.92 | +57.5% | 0.0952 | n.s. |
+| Acrobot (稀疏) | Double | −233.82 | −81.17 | +65.3% | 0.4206 | n.s. |
+| Acrobot (稀疏) | Dueling | −103.79 | −80.05 | +22.9% | 0.0556 | n.s. |
+
+在三個稀疏獎勵環境上,B3-hermes-full 於三種變體下皆於方向上勝過 B0 (9/9 個稀疏格皆為正)。MountainCar 在三種變體下皆達統計顯著 (p<0.05);CartPole 與 Acrobot 雖方向明確,惟其 p 值因 B0 高變異而被膨脹 (例如 Acrobot 之 B0 std 高達 211)。
+
+在密集獎勵環境 (LunarLander) 上,B3-hermes-full 於三種變體下皆低於 B0 (−11% 至 −23%),且無任一比較達顯著。此一結果於所有被測試之智能體上重現了 Part 1 之發現 (記憶於密集獎勵上與績效下降相關)。
+
+### 5.3 Hermes robustness across variants
+
+![圖 8。各環境下 B3-hermes-full 於三種 DQN 變體之平均;環境內之差異未達統計顯著。](figures/fig8_part2_hermes_robustness.png)
+
+**表 6:B3-hermes-full 各變體平均 + 兩兩 Mann-Whitney U p 值**
+
+| 環境 | vanilla | Double | Dueling | V-vs-Db p | V-vs-Du p | Db-vs-Du p |
+| --- | --- | --- | --- | --- | --- | --- |
+| CartPole | 334.44 | 388.60 | 315.99 | 0.548 | 0.841 | 0.548 |
+| MountainCar | −132.53 | −134.74 | −146.89 | 1.000 | 1.000 | 0.841 |
+| Acrobot | −82.92 | −81.17 | −80.05 | 0.690 | 0.310 | 0.548 |
+| LunarLander | 153.56 | 131.68 | 137.98 | 1.000 | 0.841 | 0.841 |
+
+於每個環境內,B3-hermes-full 在三種 DQN 變體之間之任一兩兩比較皆未達統計顯著 (所有 p > 0.3)。因此,獎勵設計之貢獻於所測試之價值型智能體之間,大致與智能體之選擇正交 (orthogonal)。
+
+由此可引出兩項較為細微之觀察。其一,**先進智能體會部分吸收稀疏獎勵之塑形**。於 CartPole 上,Dueling 之基準 B0 達 227.22,為所有變體中最高之 B0 (vanilla 為 154.80);於 Acrobot 上,Dueling 之基準達 −103.79 (vanilla 為 −194.96,std 由 179 降至 42)。Dueling 之 V/A 分解提供了一項歸納偏置 (inductive bias),縮小了原本由 Hermes 填補之落差。
+
+其二,**變異性指紋不僅與環境相依,亦與智能體相依**。於 MountainCar 上,B3-hermes-full 之逐種子 std 由 3.08 (vanilla) 上升至 17.04 (Double)、再至 32.35 (Dueling)——Part 1 之「極度穩定」指紋,實為該環境上 vanilla 智能體所特有。
+
+---
+
+## 6. Discussion
+
+### 6.1 Sparse-reward tasks benefit from LLM authorship
+
+CartPole、MountainCar、Acrobot 三者之原生獎勵幾乎不具學習訊號(僅為二元存活訊號或固定時間懲罰)。在本研究之訓練預算內,原生獎勵下之 DQN 幾乎無法穩定解出任何一者(B0 之成功率分別為 0%、0%、62%)。任何合理之塑形皆能解鎖學習——即使是 Gemma 一次性嘗試 (B2-gemma-oneshot) 亦能回收大部分落差。Hermes 之完整流程則更進一步提升一致性:於 MountainCar 上,B3-hermes-full 之五個種子皆收斂至極為接近之表現 (std=3.08,範圍 [−135.87, −129.38])。
+
+三項補充觀察可進一步刻畫此一現象。一項觀察為:B2-gemma-oneshot 與 B3-hermes-full 在三稀疏環境上之差距並不大 (CartPole:187.64 → 334.44;MountainCar:−153.09 → −132.53;Acrobot:−83.21 → −82.92),且 Acrobot 上幾近於零;記憶之貢獻於「單次塑形已不佳」之 CartPole 較大,於「單次塑形已佳」之 Acrobot 反而趨於零。第二項觀察為:B3-no-AST (CartPole 220.81、MountainCar −134.59、Acrobot −83.58) 於兩個動量類稀疏環境上與 B3-hermes-full 噪音內等同,顯示 AST 緩衝機制之貢獻主要落在塑形空間豐富之 CartPole。最後,B1-handcrafted 一欄在四環境中三者具有競爭力,意即 LLM 撰寫之增益並非單純「有塑形 vs. 無塑形」之效應,而是「有塑形 vs. 良好塑形」之效應。
+
+### 6.2 Dense-reward tasks: memory is associated with reduced performance
+
+LunarLander 之原生獎勵已內含豐富之梯度資訊 (位置、速度、姿態角、起落架接觸、燃料消耗)。在此情境下,加入 LLM 撰寫之塑形項充其量只是中性 (B3-hermes-full ≈ B0,p=1.00)。記憶機制本身則與績效下降相關:B3-no-memory 取得平均 248.77 (std=14.66);B3-hermes-full 取得平均 153.56 (std=91.40);p=0.0317。Part 2 之變體研究 (第 5 節) 進一步確認:此一「密集 vs. 稀疏」之樣態於三種被測試之智能體上皆成立——於 vanilla、Double 與 Dueling DQN 下,Hermes 皆於密集之 LunarLander 落後於 B0,而於三個稀疏環境領先。
+
+![四環境之記憶效應 (Hermes − no-memory)/|no-memory| %;僅 LunarLander 達統計顯著。](figures/fig4_memory_effect.png)
+
+可運作之假設為:在密集獎勵下,將高適應度之歷史範例提供給 LLM,會使其偏向加上額外塑形項,進而與原生梯度產生衝突。在稀疏獎勵任務中,「錨點」是「DQN 連解都解不開」,因此記憶帶來之改進壓力被引導為精修;在密集獎勵任務中,「錨點」本已強烈,改進壓力反而轉化為干擾。此一敘事與 Ng 等 (1999) 之勢能式塑形定理一致:多次迭代之 LLM 獎勵會偏離可形式化保證保留最佳策略之勢能式子類別,而此偏離之代價在原生獎勵已具足夠訊號時最為明顯。
+
+進一步檢視 B3-hermes-full 在 LunarLander 上之五個種子,其表現分別為 {252.4, 11.6, 125.0, 196.7, 182.0}。其中一個種子 (seed_43) 之 env_native_mean 僅 11.60,意即訓練出一個「懸停而不著陸」之退化策略。seed_43 之 iter_05 獎勵原始碼與上述假設一致。其塑形項包含一項近地時對垂直速度之強懲罰 (-0.4 × |v_y|,當 y < 0.5),搭配對腳部接觸之連續獎勵 (+0.5 × 接地腳數)。兩者合計可能引導智能體於近地低空持續滯空、雙腳輕觸地面,而非完成最終降落以獲取終端著陸獎勵。本研究並未對此機制進行形式化診斷,此一個別種子僅屬軼事性 (anecdotal) 證據。
+
+### 6.3 Variance signature
+
+B3-hermes-full 之種子間標準差在四個環境之間相差超過一個數量級 (3.08 至 113.18):MountainCar 之 3.08、Acrobot 之 4.39、LunarLander 之 91.40,以及 CartPole 之 113.18。前兩個近乎收斂之環境共享三項特性:(a) 稀疏之 −1/step 獎勵;(b) 簡單之二維或三維動力學;(c) 單一明確之子目標 (累積動量 / 注入能量)。一個合理之解讀為:於此類單一目標任務上,Gemma 會收斂至近似最佳之塑形,LLM 隨機抽樣所能引入之變異空間相當有限。
+
+![B3-hermes-full 之逐種子變異性指紋;稀疏簡單環境緊密,塑形豐富環境分散。](figures/fig3_variance_signature.png)
+
+LunarLander 之高變異恰由相反性質引發:豐富之塑形空間使「合理」獎勵設計多元並存,其中部分會與原生獎勵以不易察覺之方式互相衝突。種子間之單一崩潰 (env_native_mean=11.60) 即反映出 Gemma 寫入之塑形項將 DQN 之學習軌跡推離環境原本的最佳解。圖 5 以「一個 LunarLander 代表種子 vs. 一個 MountainCar 代表種子」之逐迭代 env-native 回報並列呈現:LunarLander 之軌跡在 5 次迭代之間反覆震盪,MountainCar 之軌跡則單調上升,以視覺方式重述「混沌 vs. 穩定」之對比。
+
+![逐迭代軌跡:LunarLander 代表種子 (混沌) 對比 MountainCar 代表種子 (單調)。](figures/fig5_per_iter_trajectories.png)
+
+### 6.4 Limitations
+
+- **小樣本規模**。n=5 僅對大效應 (Cohen's d ≥ 1) 具備充足統計力;對中等效應 (d ≈ 0.5) 而言,於此樣本規模下幾乎難以得出定論。表 3 中數項對比 (CP、MC 之記憶效應) 方向明確但因樣本不足而無法定論。我們將以 n=10 或 n=20 之重做列為後續工作之首要項目。
+- **B1-handcrafted 為暫時版本**。B1 之獎勵函式由本研究作者本人撰寫,因此任何依賴「人工塑形優於 LLM 塑形」之比較,僅憑此資料無法完整支撐。理想狀況需要由非作者之第三方撰寫人工塑形基準,方能讓相關對比承擔完整重量。本文中 B1 僅用以確立「簡單塑形於各環境上至少可行」,並非作為決定性之人類基準。第 7 節之主要結論建立於 B0、B3-hermes-full 與 B3-no-memory 之上;在此將 B1 之佔位性質列為一項限制,以免下游讀者過度解讀表 1 之 B1 一欄。
+- **變異性指紋目前由二環境而非四環境完整刻畫**。CartPole 與 LunarLander 皆具豐富塑形空間且皆呈現高變異,但前者為稀疏、後者為密集,二者並非完全可比。後續若引入「密集獎勵 × 簡單物理」之環境 (如 LunarLanderContinuous),將有助於釐清「塑形空間」與「獎勵密度」二者之分離效應。
+- **僅採用單一 LLM (Gemma 4 31B)**。所觀察之變異性可能與此一模型之抽樣特性有關。後續以 Llama 3.3、Qwen 3、DeepSeek-V3 等之重做為自然延伸。
+- **僅涵蓋部分 Rainbow 組件**。本研究實作了 Rainbow 七項組件中之兩項 (Double DQN 與 Dueling 架構)。其餘組件——優先經驗重播 (Prioritized Experience Replay)、多步回報 (Multi-Step returns)、噪聲網路 (Noisy Networks),以及分佈式 Q 學習 (Distributional Q-learning;C51 / QR-DQN),以及其完整 Rainbow 組合——皆留待後續工作。其實作複雜度 (約 500 行程式碼) 及其與獎勵設計貢獻之正交性,使其落於本研究範圍之外。
+- **未進行獎勵正確性分析**。本研究並未形式化檢驗 Gemma 所撰寫獎勵是否與最佳價值函數對齊。後續可結合 Ng et al. (1999) 之獎勵塑形定理,進行形式化驗證——例如自動將 LLM 撰寫之獎勵投影至勢能式子類別,並量測每次迭代被加入之「非勢能式」質量。
+
+### 6.5 Falsifiable predictions
+
+依本研究發現,以下三項可證偽假設值得提出:
+
+1. **原生獎勵雖密集但對齊不佳之任務,將自記憶機制中獲益**,因 Hermes 可透過迭代修正一次性 LLM 難以察覺之錯位。
+2. **獎勵密度單獨將不足以作為預測指標**,因其與任務複雜度之交互作用亦屬關鍵;預期所需之分類應為二維空間——(稀疏 vs. 密集) × (塑形空間豐富 vs. 貧乏)。
+3. **更強之 LLM (如 Gemini 2.5 Pro) 將加劇變異性指紋**,因能力更強之 LLM 傾向產出更具侵略性之塑形,同時推高高端表現與崩潰風險。
+
+---
+
+## 7. Conclusion
+
+本文於 Gymnasium 四個古典控制環境上系統性評估 Hermes-DQN——一個結合開源 LLM 獎勵作者、跨迭代記憶與 AST 感知重播緩衝之複合系統。於三個被測試之稀疏獎勵環境中,B3-hermes-full 之平均表現皆高於原生 DQN,其中 2/3 達統計顯著 (CartPole p=0.03、MountainCar p=0.01),第三者 (Acrobot p=0.095) 方向明確但未通過嚴格三條件勝出判準。此一結果與「EUREKA 式之 LLM 獎勵設計可遷移至開源模型」之假設一致 (限於稀疏情境)。然而在唯一之密集獎勵環境 (LunarLander) 上,Hermes 與基準在統計上無差異,且跨迭代記憶機制與績效下降相關 (p=0.0317、−38%)。一組變異性指紋伴隨此一反轉出現:於本評估中,Hermes 於物理簡單之稀疏環境上極度穩定 (std ≤ 5),於塑形空間豐富之環境上則為高變異 (std=91+),並偶有近乎崩潰之種子。在所測試之配置下,獎勵密度似可作為 LLM 獎勵設計適用性之預測指標;記憶機制應依任務「選擇性啟用」而非預設開啟。
+
+---
+
+## References
+
+1. Ma, Y. J., Liang, W., Wang, G., Huang, D.-A., Bastani, O., Jayaraman, D., Zhu, Y., Fan, L., & Anandkumar, A. (2024). **Eureka: Human-level reward design via coding large language models**. ICLR 2024.
+2. Cardenoso, F., & Caarls, W. (2025). **Leveraging LLMs for reward function design in reinforcement learning control tasks**. arXiv:2511.19355.
+3. Sun, S., Liu, R., Lyu, J., Yang, J.-W., Zhang, L., & Li, X. (2024). **A Large Language Model-Driven Reward Design Framework via Dynamic Feedback for Reinforcement Learning**. arXiv:2410.14660.
+4. Lee, C.-H., & Lee, C. (2025). **GB-DQN: Gradient Boosted DQN Models for Non-stationary Reinforcement Learning**. arXiv:2512.17034.
+5. Isele, D., & Cosgun, A. (2018). **Selective Experience Replay for Lifelong Learning**. AAAI 2018.
+6. Zhao, X., et al. (2025). **LLM-Explorer: Curiosity-driven exploration with language models**. NeurIPS 2025.
+7. Masadome, R., & Harada, T. (2025). **LLM-driven reward design for cart-pole stabilization**. IEEJ Transactions.
+8. Nous Research. (2026). **Hermes Agent: 4-tier hierarchical memory for autonomous LLM workflows**. Technical Report.
+9. Tang, H., & Berseth, G. (2024). **Improving Deep Reinforcement Learning by Reducing the Chain Effect of Value and Policy Churn**. NeurIPS 2024.
+10. Stanford HAI. (2026). **Artificial Intelligence Index Report 2026**.
+11. Singh, A., Patel, R., et al. (2025). **Lunar Lander: Deep Q-Learning Approach**. International Journal of Recent Publications and Reviews, 6(5), IJRPR45485.
+12. Henderson, P., Islam, R., Bachman, P., Pineau, J., Precup, D., & Meger, D. (2018). **Deep Reinforcement Learning that Matters**. AAAI 2018.
+13. Ng, A. Y., Harada, D., & Russell, S. (1999). **Policy invariance under reward transformations: Theory and application to reward shaping**. ICML 1999.
+14. Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness, J., Bellemare, M. G., et al. (2015). **Human-level control through deep reinforcement learning**. Nature, 518(7540), 529–533.
+15. van Hasselt, H., Guez, A., & Silver, D. (2016). **Deep Reinforcement Learning with Double Q-learning**. AAAI 2016.
+16. Wang, Z., Schaul, T., Hessel, M., van Hasselt, H., Lanctot, M., & de Freitas, N. (2016). **Dueling Network Architectures for Deep Reinforcement Learning**. ICML 2016.
+
+---
+
+## Appendix A. Reproducibility
+
+本研究之所有實驗產出皆公開於 `https://github.com/oomao/Final_project_Group5_DRL`:
+
+- 原始碼:`hermes_dqn/`
+- 編排器:`scripts/run_full_experiment.py`
+- 每次訓練之設定與獎勵原始碼:`runs/final*/`
+- 各環境比對報告:`reports/final*/comparison_report.md`
+- 跨環境整合分析:`reports/integration/4env_integration.md`
+
+每一個訓練目錄皆包含:`config.json` (超參數 + env_id + reward_fn_sha256)、`episodes.jsonl` (逐集回報)、`reward_fn.py` (Gemma 所撰寫之獎勵函數,或 B0/B1 之原始碼)、`model_final.pt` (最終 DQN 權重)、`llm_attempts.jsonl` (Gemma 之提示與回應紀錄,已移除可識別資訊)。

@@ -129,6 +129,7 @@ def _build_command(
     exp: str,
     out_root: Path,
     env_id: str = "LunarLander-v3",
+    dqn_variant: str = "vanilla",
 ) -> list[str]:
     python = sys.executable
     if cond_spec["kind"] == "train":
@@ -147,6 +148,8 @@ def _build_command(
             str(iter_dir),
             "--env-id",
             env_id,
+            "--dqn-variant",
+            dqn_variant,
             *cond_spec["args"],
         ]
         return cmd
@@ -175,6 +178,8 @@ def _build_command(
         str(per_seed_memory_db),
         "--env-id",
         env_id,
+        "--dqn-variant",
+        dqn_variant,
         *cond_spec["args"],
     ]
     return cmd
@@ -311,6 +316,15 @@ def main() -> None:
         default="LunarLander-v3",
         help="Gym env id. Default LunarLander-v3. Currently also supports CartPole-v1.",
     )
+    parser.add_argument(
+        "--dqn-variant",
+        type=str,
+        choices=["vanilla", "double", "dueling", "double_dueling"],
+        default="vanilla",
+        help="DQN agent variant for ALL conditions in this run. "
+        "vanilla=Mnih 2015 (default), double=van Hasselt 2016, "
+        "dueling=Wang 2016, double_dueling=both.",
+    )
     args = parser.parse_args()
 
     # Resolve env profile (B1 reward path + default episodes).
@@ -389,7 +403,7 @@ def main() -> None:
             seed_dir = _seed_dir(out_root, args.exp, cond, seed)
             cmd = _build_command(
                 cond, cond_spec, seed, args.episodes, n_iter, seed_dir, args.exp, out_root,
-                env_id=args.env_id,
+                env_id=args.env_id, dqn_variant=args.dqn_variant,
             )
             done = _job_already_done(seed_dir, cond_spec, n_iter)
             tag = "[SKIP]" if done else "[QUEUE]"
@@ -436,7 +450,7 @@ def main() -> None:
         seed_dir = _seed_dir(out_root, args.exp, cond, seed)
         cmd = _build_command(
             cond, cond_spec, seed, args.episodes, n_iter, seed_dir, args.exp, out_root,
-            env_id=args.env_id,
+            env_id=args.env_id, dqn_variant=args.dqn_variant,
         )
         log_path = seed_dir / "job.log"
         with in_flight_lock:

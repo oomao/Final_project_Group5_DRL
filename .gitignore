@@ -34,3 +34,11 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# LaTeX build artifacts
+paper/latex_build/*.aux
+paper/latex_build/*.log
+paper/latex_build/*.out
+paper/latex_build/*.synctex.gz
+paper/latex_build/en_main.pdf
+paper/latex_build/zh_main.pdf

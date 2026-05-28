@@ -1,4 +1,14 @@
-"""Vanilla DQN agent: online + target Q-network, replay buffer, ε-greedy."""
+"""DQN agent: online + target Q-network, replay buffer, epsilon-greedy.
+
+Supports three Rainbow-family variants via DQNConfig flags:
+  - Vanilla DQN (Mnih et al., 2015) — default
+  - Double DQN (van Hasselt et al., 2016) — use_double_dqn=True
+  - Dueling DQN (Wang et al., 2016) — dueling=True
+
+These are orthogonal — both flags can be combined ("Double + Dueling").
+Additional Rainbow components (PER, Multi-Step, Noisy, Distributional) are
+not implemented in this codebase; see paper section 6 (Future Work).
+"""
 
 from __future__ import annotations
 
@@ -9,16 +19,24 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from hermes_dqn.agent.q_network import QNetwork
+from hermes_dqn.agent.q_network import DuelingQNetwork, QNetwork
 from hermes_dqn.agent.replay_buffer import ReplayBuffer
 
 
 @dataclass
 class DQNConfig:
-    """Hyperparameters for the vanilla DQN baseline.
+    """Hyperparameters for the DQN agent.
 
     Defaults aim to reproduce the IJRPR 2025 LunarLander baseline
     (~1200 episodes to converge, ~92% success rate). See design.md.
+
+    Variant flags (orthogonal — can be combined):
+        use_double_dqn: Double DQN target computation (van Hasselt 2016).
+            False = vanilla max over target network (Mnih 2015).
+            True = online net selects argmax action, target evaluates Q-value.
+        dueling: use DuelingQNetwork architecture (Wang 2016) for both
+            online and target networks. Splits hidden trunk into V + A heads
+            recombined as Q = V + (A - mean(A)).
     """
 
     obs_dim: int = 8
@@ -33,6 +51,10 @@ class DQNConfig:
     epsilon_start: float = 1.0
     epsilon_end: float = 0.01
     epsilon_decay_steps: int = 50_000
+    # Rainbow-family variant flags (default: vanilla DQN — preserves prior
+    # experiments byte-identical when both flags are False).
+    use_double_dqn: bool = False
+    dueling: bool = False
 
 
 class DQNAgent:
@@ -52,8 +74,10 @@ class DQNAgent:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
 
-        self.online = QNetwork(config.obs_dim, config.n_actions, config.hidden).to(self.device)
-        self.target = QNetwork(config.obs_dim, config.n_actions, config.hidden).to(self.device)
+        # Pick Q-network architecture based on dueling flag.
+        QNetClass = DuelingQNetwork if config.dueling else QNetwork
+        self.online = QNetClass(config.obs_dim, config.n_actions, config.hidden).to(self.device)
+        self.target = QNetClass(config.obs_dim, config.n_actions, config.hidden).to(self.device)
         self.target.load_state_dict(self.online.state_dict())
         self.target.eval()
 
@@ -107,7 +131,15 @@ class DQNAgent:
 
         q_pred = self.online(obs).gather(1, actions.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
-            q_next = self.target(next_obs).max(dim=1).values
+            if c.use_double_dqn:
+                # Double DQN: ONLINE selects the argmax action, TARGET evaluates
+                # the Q-value at that action. Decouples action selection from
+                # value estimation, reducing overestimation bias.
+                next_actions = self.online(next_obs).argmax(dim=1, keepdim=True)
+                q_next = self.target(next_obs).gather(1, next_actions).squeeze(1)
+            else:
+                # Vanilla DQN: TARGET both selects and evaluates (max).
+                q_next = self.target(next_obs).max(dim=1).values
             q_target = rewards + c.gamma * (1.0 - dones) * q_next
 
         loss = F.smooth_l1_loss(q_pred, q_target)

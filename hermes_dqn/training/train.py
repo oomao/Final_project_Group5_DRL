@@ -404,6 +404,14 @@ def _build_argparser() -> argparse.ArgumentParser:
         default=None,
         help="Gym env id. Default: LunarLander-v3. CartPole-v1 also supported.",
     )
+    p.add_argument(
+        "--dqn-variant",
+        type=str,
+        choices=["vanilla", "double", "dueling", "double_dueling"],
+        default=None,
+        help="DQN agent variant. vanilla=Mnih 2015, double=van Hasselt 2016, "
+        "dueling=Wang 2016, double_dueling=both. Default: vanilla.",
+    )
     return p
 
 
@@ -436,6 +444,17 @@ def main() -> None:
         overrides["eval_n_episodes"] = args.eval_n_episodes
     if args.env_id is not None:
         overrides["env_id"] = args.env_id
+    if args.dqn_variant is not None:
+        # Map the user-facing variant name onto the two DQNConfig booleans.
+        variant_map = {
+            "vanilla":         (False, False),
+            "double":          (True,  False),
+            "dueling":         (False, True),
+            "double_dueling":  (True,  True),
+        }
+        use_double, dueling = variant_map[args.dqn_variant]
+        overrides["use_double_dqn"] = use_double
+        overrides["dueling"] = dueling
 
     config = TrainConfig.from_overrides(overrides)
     run_dir = train(config)
