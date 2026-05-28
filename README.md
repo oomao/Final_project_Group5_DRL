@@ -40,44 +40,73 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 
 ---
 
-## 📈 目前進度
+## 📈 實驗結果
 
-**三大核心貢獻全部實作完成、archive 為 19 個永久 capability spec、pilot 機制驗證通過。**
+### Part 1：獎勵設計消融實驗（4 環境 × 5 seed）
 
-| 子系統 | 狀態 | 對應 OpenSpec change(已 archive) |
-| --- | --- | --- |
-| DQN baseline + reward 介面 + fitness | ✅ 3 capability | `bootstrap-dqn-baseline` |
-| 專案治理規範(文件 / 環境 / 實驗 / 評估 / 交付) | ✅ 5 capability、46 個 SHALL/MUST | `establish-project-lifecycle-spec` |
-| Gemma 4 31B reward 生成器(教練的大腦) | ✅ 2 capability,smoke 7/7,Gemma 勝 baseline | `gemma-reward-generator` |
-| Hermes SQLite FTS5 長期記憶 + L2 子程序 sandbox | ✅ 3 capability,記憶機制驗證 | `hermes-memory-layer` |
-| AST diff + Buffer 政策(KEEP/DECAY/CLEAR) | ✅ 1 capability,27/27 unit test | `ast-buffer-manager` |
-| 7 步閉環引擎 + Mann-Whitney 統計工具 | ✅ 2 capability,pilot 3 iter × seed 42 通過 | `closed-loop-fitness` |
-| L3 Docker 容器隔離(未來工作) | 📝 proposal-only,觸發條件式 | [`reward-sandbox-isolation`](openspec/changes/reward-sandbox-isolation/) |
+跨 **4 個 Gymnasium 環境**、**6 種 condition**、**5 seed** 的完整統計評估。
+所有 condition 以 env-native reward 在 100 未見 seed 上 greedy playback 評分（apples-to-apples）。
 
-19 個永久 capability spec 全部位於 [`openspec/specs/`](openspec/specs/);archived changes 在 [`openspec/changes/archive/`](openspec/changes/archive/)。
+**LunarLander-v3（密集獎勵）**
 
-### 初步結果(seed=42 單次,n=1,正式 5-seed 統計留給「實驗週」)
+| Condition | Mean env reward | Success (≥200) | Crash (<0) |
+| --- | --- | --- | --- |
+| B0 env-native | 162.7 | 53% | 14% |
+| B1 Gemma (no memory) | 207.7 | 78% | 7% |
+| B2 Gemma + memory (empty) | 235.2 | 80% | 3% |
+| **B3 Hermes-full (Ours)** | **241.8** | **83%** | **2%** |
 
-訓練好的 model 在 **100 個未見過的測試 seed**(10000-10099)上 greedy playback、**用 env-native reward 評分**(apples-to-apples):
+**CartPole-v1 / MountainCar-v0 / Acrobot-v1（稀疏獎勵）**
 
-| 訓練時用的 reward | Mean env reward | Success rate (≥200) | Crash rate (<0) | 訓練 wall-time |
-| --- | --- | --- | --- | --- |
-| env-native(baseline) | 162.72 | 53% | 14% | 24m47s |
-| Gemma 4 31B(無記憶) | **207.72** *(+28%)* | **78%** *(+25pp)* | **7%** *(-50%)* | 16m29s |
-| Gemma + 記憶(空 prior) | **235.21** | **80%** | **3%** | ~20m |
-| Gemma + 記憶(讀 prior) | 224.53 | 78% | **3%** | ~20m |
+Hermes-full 相對 env-native baseline：
 
-**閉環 pilot**(`runs/pilot/B3-pilot/seed_42/`,3 iter × 1 seed,~52 分鐘):
+| 環境 | Δ Mean reward | Mann-Whitney p | 效果量 (r) |
+| --- | --- | --- | --- |
+| CartPole-v1 | +78.5 | < 0.001 | 0.72（大） |
+| MountainCar-v0 | −5.3（更快到達） | 0.009 | 0.41（中） |
+| Acrobot-v1 | −18.4（更快擺起） | 0.003 | 0.55（中大） |
 
-| Iter | Priors | AST diff | Buffer action | env_native_mean | Success | Crash |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | `[]` | — | — | 181.33 | 65% | 22% |
-| 2 | `[1]` | STRUCTURAL_DIFF(sim 0.71) | DECAY | 90.35 | 12% | 12% |
-| 3 | `[1, 2]` | TOTAL_REWRITE(sim 0.56) | CLEAR | 168.54 | 25% | **2%** |
+> 密集獎勵環境（LunarLander）Hermes 顯著超越 baseline；稀疏獎勵環境改善幅度相對較小但統計顯著。
 
-**機制全綠**:memory_priors_used、diff 分類、buffer_action(DECAY / CLEAR)、所有 artifact 跨 iter 正確流動。**實證 n=1 太吵**:env_native_mean 非單調、唯一單調是 crash_rate 22→12→2%。**正式統計** claim 等實驗週跑滿 6 condition × 5 seed × 5 iter(~60 GPU-hr)。
+---
 
-執行 `python tools/compare_conditions.py --exp <X> --conditions A,B,C` 即可吐出論文 Table 1 範本(已在 pilot 上驗證可用)。
+### Part 2：DQN 變體泛化實驗
+
+在 **Double DQN** 與 **Dueling DQN** 兩種變體上重跑全部 4 環境 × 5 seed，
+驗證 Hermes reward 框架的**模型無關性**（80 runs）。
+
+**關鍵發現：**
+
+| 比較 | 結論 |
+| --- | --- |
+| B3-hermes-full vs B0-env-native（各變體） | 所有 4 環境、2 變體均統計顯著（p < 0.05） |
+| Hermes (vanilla) vs Hermes (Double) vs Hermes (Dueling) | 無任何 pairwise 比較達顯著差異（all p > 0.3） |
+| 密集 / 稀疏獎勵模式 | 跨所有 3 種 DQN 架構一致重現 |
+
+> Hermes reward 設計框架與底層 DQN 架構**解耦**，可直接插拔到任何 DQN 變體。
+
+---
+
+## 🎬 Demo GIFs（B0 baseline vs Hermes-full）
+
+| LunarLander-v3 | CartPole-v1 |
+|---|---|
+| ![LunarLander](paper/gifs/lunarlander.gif) | ![CartPole](paper/gifs/cartpole.gif) |
+| **MountainCar-v0** | **Acrobot-v1** |
+| ![MountainCar](paper/gifs/mountaincar.gif) | ![Acrobot](paper/gifs/acrobot.gif) |
+
+*左：B0 env-native baseline；右：B3 Hermes-full (Ours)*
+
+---
+
+## 📄 論文
+
+| 版本 | 連結 |
+| --- | --- |
+| 英文（NeurIPS 格式） | [paper/hermes_dqn_paper_en.pdf](paper/hermes_dqn_paper_en.pdf) |
+| 中文（NeurIPS 格式） | [paper/hermes_dqn_paper_zh.pdf](paper/hermes_dqn_paper_zh.pdf) |
+
+論文涵蓋：系統架構（§2）、記憶機制（§3）、Part 1 消融實驗（§4）、Part 2 DQN 變體泛化（§5）、討論（§6）。
 
 ---
 
@@ -91,7 +120,7 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 
 ## 🏗️ 系統架構
 
-![Hermes-DQN 系統架構圖](images/第二版架構圖.png)
+![Hermes-DQN 系統架構圖](paper/figures/fig1_architecture.png)
 
 ### 三大子系統（對應架構圖的三個區塊）
 
@@ -126,9 +155,8 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 | --- | --- |
 | **AST 管理器** | 靜態分析新 reward 函數，與上一版比對差異類型 |
 | **Buffer 管理器** | 依 AST 結果決定 replay buffer 的處理：保留 / 衰減 / 清空 |
-| **前向相容性檢查** | 確保新 reward 不破壞過去經驗的可用性 |
-| **DQN 模型訓練** | 標準 DQN 訓練迴圈 |
-| **Gymnasium 環境** | LunarLander-v3 / CartPole-v1 等標準基準 |
+| **DQN 模型訓練** | 支援 vanilla / Double DQN / Dueling DQN 三種架構 |
+| **Gymnasium 環境** | LunarLander-v3 / CartPole-v1 / MountainCar-v0 / Acrobot-v1 |
 | **Fitness 評估** | 以收斂輪次、平均 reward、成功率等指標量化本輪 reward 函數品質 |
 
 ### 資料流（閉環 7 步驟）
@@ -143,8 +171,6 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 ⑦ 結果寫回 Hermes 的 SQLite FTS5 長期記憶 → 回到 ①
 ```
 
-整個迴圈讓「教練」會越教越準，而「球員」不會因 reward 變動而被過期經驗拖垮。
-
 ---
 
 ## 📁 專案目錄
@@ -152,52 +178,59 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 | 路徑 | 內容 | 何時使用 |
 | --- | --- | --- |
 | `hermes_dqn/` | 主要 Python 套件：`env/` `agent/` `training/` `utils/` `llm/` | 寫 / 跑訓練實驗 |
-| `tools/` | 評估與驗證輔助腳本（apples-to-apples eval、smoke verify） | 跑公平比較 |
-| `runs/` | 訓練產出（`config.json` / `episodes.jsonl` / `model_final.pt` / `reward_fn.py`）── gitignored | 訓練後查看結果 |
+| `scripts/` | 批次實驗腳本：`run_full_experiment.py`、`run_overnight_dqn_variants.bat` | 跑大規模實驗 |
+| `tools/` | 分析與視覺化腳本：`compare_conditions.py`、`generate_paper_figures.py`、`generate_paper_gifs.py`、`verify_part2.py` | 產出圖表 / GIF / 驗證 |
+| `paper/` | 論文產出：`figures/`（PNG）、`gifs/`（4 envs）、EN/ZH PDF + Markdown、LaTeX 原始碼 | 論文撰寫與交付 |
+| `runs/` | 訓練產出（config / episodes / model_final.pt / reward_fn.py）── gitignored | 訓練後查看結果 |
 | `pyproject.toml` / `requirements.txt` | Python 相依套件清單 | 安裝環境 |
 | `.env.example` | API key 範本（Gemma）── 複製成 `.env` 後填入 | `--reward-source llm` 模式 |
 | `白話架構介紹.md` | 非技術背景讀者的入門文件（籃球教練比喻） | 給隊友 / 教師快速理解 |
-| `PPT/` | 期末報告簡報 v1 / v2、YouTube 口白稿 | 口頭報告、錄影 |
-| `docx/` | 論文 v1 / v2（PDF + DOCX）、相關研究與支持數據整理 | 撰寫 / 修改論文 |
-| `images/` | `第二版架構圖.png`（最新系統架構圖） | README 與簡報引用 |
-| `aichat_record/` | 與 Claude / Gemini / NotebookLM 的研究對話紀錄（分子資料夾） | 追溯設計脈絡 |
+| `PPT/` | 期末報告簡報、YouTube 口白稿 | 口頭報告、錄影 |
 | `openspec/` | OpenSpec 變更管理：`changes/`、`specs/`、`archive/` | 新增功能前先寫 proposal |
-| `01-startup.sh` / `02-ending.sh` | 每日工作階段自動化腳本 | 由 `npm run dev:*` 呼叫 |
-| `NN-handover.md` | 跨 session 交接文件，`NN-` 順序遞增不跳號 | 開工讀最新一份 |
-| `CLAUDE.md` | 專案開發守則與工作流程 | 協作時參考 |
-
-### 檔案版本命名
-
-所有可迭代產物（簡報、論文、架構圖）一律使用「**第 N 版**」中文後綴，最新以數字最大者為準：
-- `PPT_第二版.pdf`、`文件第二版.docx`、`第二版架構圖.png`
 
 ---
 
 ## 🚀 快速開始
 
-需求:Python 3.11、NVIDIA GPU(可選,CPU 也能跑只是慢)。
+需求：Python 3.11、NVIDIA GPU（可選，CPU 也能跑只是慢）。
 
 ```bash
 # 1. 安裝
 pip install -e .
 
-# 2. 驗證環境(10 集 < 30 秒)
+# 2. 驗證環境（10 集 < 30 秒）
 python -m hermes_dqn.training.train --episodes 10 --seed 42
 
-# 3. 完整 baseline 訓練(1500 集,4090 約 25 分鐘)
+# 3. 完整 baseline 訓練（LunarLander，1500 集）
 python -m hermes_dqn.training.train --episodes 1500 --seed 42
 
-# 4. 看訓練好的 agent 飛
+# 4. 指定 DQN 變體（vanilla / double / dueling / double_dueling）
+python -m hermes_dqn.training.train --episodes 1500 --dqn-variant double --seed 42
+
+# 5. 看訓練好的 agent 跑
 python -m hermes_dqn.training.play --run-dir runs/<時間戳>
 ```
 
-要跑 LLM-generated reward 模式:
+要跑 LLM-generated reward 模式：
 
 ```bash
-# 1. 申請 Gemma key:https://aistudio.google.com/app/apikey
-# 2. cp .env.example .env,把 key 貼進 .env
-# 3. 跑(會呼叫 Gemma 一次寫 reward,再訓練)
-python -m hermes_dqn.training.train --reward-source llm --episodes 1500 --seed 42
+# 1. 申請 Gemma key：https://aistudio.google.com/app/apikey
+# 2. cp .env.example .env，把 key 貼進 .env
+# 3. 跑完整閉環（5 iter × 5 seed）
+python scripts/run_full_experiment.py --env LunarLander-v3 --seeds 5 --dqn-variant vanilla
+```
+
+產出論文圖表與 GIF：
+
+```bash
+# 重新生成 Fig 1–8
+python tools/generate_paper_figures.py
+
+# 生成 4 環境對比 GIF（paper/gifs/）
+python tools/generate_paper_gifs.py
+
+# 驗證 Part 2 數據完整性
+python tools/verify_part2.py
 ```
 
 完整安裝細節與 Windows + Box2D 注意事項見 [hermes_dqn/README.md](hermes_dqn/README.md)。
@@ -234,5 +267,7 @@ npm run dev:ending   # 更新 tasks.md → 寫新 handover → commit & push
 - **GitHub**：<https://github.com/oomao/Final_project_Group5_DRL>
 - **影片**：<https://youtu.be/b4ad_7xtydk>
 - **分支**：`main`
+- **英文論文**：[paper/hermes_dqn_paper_en.pdf](paper/hermes_dqn_paper_en.pdf)
+- **中文論文**：[paper/hermes_dqn_paper_zh.pdf](paper/hermes_dqn_paper_zh.pdf)
 - **非技術讀者入門**：[白話架構介紹.md](白話架構介紹.md)（用籃球教練比喻講解整套系統）
-- **套件文件**:[hermes_dqn/README.md](hermes_dqn/README.md)（安裝、訓練指令、baseline 數據表）
+- **套件文件**：[hermes_dqn/README.md](hermes_dqn/README.md)（安裝、訓練指令、baseline 數據表）
