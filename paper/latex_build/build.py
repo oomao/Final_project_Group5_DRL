@@ -111,8 +111,9 @@ PREAMBLE_EN = r"""
 \title{Hermes-DQN: When Does Memory-Augmented LLM Reward Design Help DQN? A 4-Environment Analysis}
 
 \author{%
-  ShengMao Chen \quad Hsienan Lin \quad YuJou Hsin \quad KuanYu Chen \\
-  \textit{Department of Management Information Systems, National Chung Hsing University} \\
+  ShengMao Chen, Hsienan Lin, YuJou Hsin, KuanYu Chen \\[3pt]
+  \small Department of Management Information Systems \\
+  \small National Chung Hsing University
 }
 
 \begin{document}
@@ -199,7 +200,10 @@ PREAMBLE_ZH = r"""
 \renewcommand{\tablename}{表}
 
 \title{Hermes-DQN:記憶擴增之大型語言模型獎勵設計何時對 DQN 有效?四環境分析}
-\author{陳盛茂 \quad 林仙安 \quad 辛語柔 \quad 陳冠宇\\\textit{國立中興大學 資訊管理學研究所}}
+\author{%
+  陳盛茂、林仙安、辛語柔、陳冠宇 \\[3pt]
+  \small 國立中興大學　資訊管理學研究所
+}
 \date{}
 
 \begin{document}
