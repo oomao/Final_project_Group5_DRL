@@ -1,7 +1,8 @@
 # Hermes-DQN: When Does Memory-Augmented LLM Reward Design Help DQN? A 4-Environment Analysis
 
-**Anonymous Authors**
-*Affiliation withheld for review*
+**ShengMao Chen · Hsienan Lin · YuJou Hsin · KuanYu Chen**
+
+*Department of Management Information Systems, National Chung Hsing University*
 
 ---
 
