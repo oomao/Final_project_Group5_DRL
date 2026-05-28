@@ -129,18 +129,27 @@ POSTAMBLE = r"""
 # loading SimHei/SimSun (which aren't installed on Trad-Chinese Windows). We
 # set Traditional-Chinese fonts manually via xeCJK below.
 PREAMBLE_ZH = r"""
-\documentclass[UTF8,fontset=none,10pt]{ctexart}
+\documentclass[UTF8,fontset=none,a4paper]{ctexart}
 
-% Use NeurIPS-like geometry (cannot load neurips_2024.sty directly because it
-% calls \usepackage{times} which conflicts with ctex; we replicate its layout
-% using ~1in margins so we stay in the conference page-count range.)
-\usepackage[letterpaper, top=1in, bottom=1in, left=1.25in, right=1.25in]{geometry}
-% Tighten line spacing (ctex defaults to 1.36; NeurIPS uses ~1.1)
-\linespread{1.12}
+% ── Font size: 20pt body text ─────────────────────────────────────────────────
+% ctexart does not natively support 20pt in the documentclass option; we use
+% the fontsize package (or \fontsize) to set the base size after loading.
+\usepackage{fontsize}
+\changefontsize[30pt]{20pt}   % {baselineskip}{fontsize}
+
+% ── Page geometry (A4, comfortable margins for 20pt text) ─────────────────────
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2.8cm, right=2.8cm]{geometry}
+\linespread{1.5}
+
+% ── Fonts ─────────────────────────────────────────────────────────────────────
 \usepackage{xeCJK}
-\setCJKmainfont[BoldFont=Microsoft JhengHei Bold, ItalicFont=Microsoft JhengHei]{Microsoft JhengHei}
-\setCJKsansfont[BoldFont=Microsoft JhengHei Bold]{Microsoft JhengHei}
-\setCJKmonofont{MingLiU}
+% Latin / numbers: Times New Roman
+\setmainfont{Times New Roman}
+\setsansfont{Times New Roman}
+% Chinese: 標楷體 (DFKai-SB)
+\setCJKmainfont[BoldFont=DFKai-SB, ItalicFont=DFKai-SB]{DFKai-SB}
+\setCJKsansfont{DFKai-SB}
+\setCJKmonofont{DFKai-SB}
 
 \usepackage{amsfonts}
 \usepackage{amsmath}
