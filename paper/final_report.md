@@ -14,7 +14,7 @@
 
 實驗橫跨 4 個 Gymnasium 古典控制環境（LunarLander-v3、CartPole-v1、MountainCar-v0、Acrobot-v1），涵蓋 6 種消融條件、5 個隨機種子，共 120 次完整訓練。同時進行 Part 2 延伸實驗：以 Double DQN 與 Dueling DQN 兩種變體驗證框架之模型無關性（80 次額外訓練）。
 
-結果顯示：稀疏獎勵環境中 Hermes-full 相對 baseline 提升 32–116%；密集獎勵環境中則出現記憶機制負向效應（p=0.0317）。Part 2 確認 Hermes 框架與底層 DQN 架構解耦，具備插拔泛化能力。
+結果顯示：稀疏獎勵環境中 Hermes-full 相對 baseline 提升 31.5–116.1%；密集獎勵環境中則出現記憶機制負向效應（p=0.0317）。Part 2 確認 Hermes 框架與底層 DQN 架構解耦，具備插拔泛化能力。
 
 ---
 
@@ -120,13 +120,12 @@ Hermes-DQN 由三個子系統組成，形成一個**閉環 7 步驟**的自動�
 
 獎勵函數更新後，舊的 replay samples 可能不再有效。本研究依 AST 差異程度決定處理策略：
 
-| 差異類型 | AST 相似度 | Buffer 動作 |
+| 差異類型（AST diff）| 判定方式 | Buffer 動作 |
 |---|---|---|
-| IDENTICAL | 1.00 | KEEP（完整保留） |
-| CONSTANT_TWEAK | > 0.85 | KEEP |
-| STRUCTURAL_SIMILAR | 0.70–0.85 | PARTIAL_KEEP（保留高 Q 樣本） |
-| STRUCTURAL_DIFF | 0.50–0.70 | DECAY（權重衰減） |
-| TOTAL_REWRITE | < 0.50 | CLEAR（清空重來） |
+| IDENTICAL | 語法樹完全相同 | KEEP（完整保留） |
+| SIGNATURE_ONLY | 簽章不變、函式體變動 | PARTIAL_KEEP（依終止旗標與獎勵符號謂詞篩選） |
+| STRUCTURAL_DIFF | 控制流變動、多數運算元延續 | DECAY（每筆樣本 ×0.5 權重） |
+| TOTAL_REWRITE | 結構幾無重疊 | CLEAR（清空重新累積） |
 
 ### 3.5 DQN 智能體設計
 
@@ -141,27 +140,27 @@ Hermes-DQN 由三個子系統組成，形成一個**閉環 7 步驟**的自動�
 
 **網路架構（Vanilla / Double）**：
 ```
-Input(obs_dim) → Linear(128) → ReLU → Linear(128) → ReLU → Linear(n_actions)
+Input(obs_dim) → Linear(64) → ReLU → Linear(64) → ReLU → Linear(n_actions)
 ```
 
 **網路架構（Dueling）**：
 ```
-Input(obs_dim) → Linear(128) → ReLU → Linear(128) → ReLU
-                                                        ├─ V_stream → Linear(128) → Linear(1)       → V(s)
-                                                        └─ A_stream → Linear(128) → Linear(n_actions) → A(s,a)
+Input(obs_dim) → Linear(64) → ReLU → Linear(64) → ReLU
+                                                        ├─ V_stream → Linear(64) → Linear(1)       → V(s)
+                                                        └─ A_stream → Linear(64) → Linear(n_actions) → A(s,a)
                                         Q = V(s) + (A(s,a) − mean_a(A(s,a)))
 ```
 
 ### 3.6 六種消融條件（Part 1）
 
-| 條件代號 | 獎勵來源 | 記憶 | AST Buffer |
-|---|---|---|---|
-| B0-env-native | 環境原生獎勵 | — | — |
-| B1-hand-shaped | 人工塑形獎勵 | — | — |
-| B1g-gemma-nofix | Gemma（不修正） | — | — |
-| B2-gemma-memory | Gemma | FTS5 記憶 | — |
-| B3-hermes-full | Gemma | FTS5 記憶 | AST-aware |
-| B3a-ablate-buffer | Gemma | FTS5 記憶 | 停用（KEEP all） |
+| 條件代號 | 獎勵來源 | 記憶（FTS5）| AST Buffer | 迭代 |
+|---|---|---|---|---|
+| B0-env-native | 環境原生獎勵 | — | — | 1 |
+| B1-handcrafted | 人工撰寫塑形 | — | — | 1 |
+| B2-gemma-oneshot | 單次 Gemma 呼叫 | — | — | 1 |
+| B3-hermes-full | Gemma | ✓ | ✓ | 5 |
+| B3-no-memory | 每輪重新呼叫 Gemma | — | ✓ | 5 |
+| B3-no-AST | Gemma | ✓ | —（固定 KEEP）| 5 |
 
 ---
 
@@ -180,14 +179,16 @@ Input(obs_dim) → Linear(128) → ReLU → Linear(128) → ReLU
 
 | 超參數 | 值 |
 |---|---|
-| Episodes | 1500（LunarLander）/ 500（其他） |
-| Replay Buffer size | 50,000 |
+| 網路 | 64×64 MLP |
+| Replay Buffer size | 100,000 |
 | Batch size | 64 |
-| Learning rate | 1e-3 |
-| Target network update | 每 200 步硬更新 |
-| Epsilon 衰減 | 1.0 → 0.01（前 70% episodes） |
+| Learning rate | 5e-4 |
+| Target network update | 每 1000 步 |
+| Epsilon 衰減 | 1.0 → 0.01（50K 步內線性衰減） |
 | Gamma | 0.99 |
+| 訓練 / 評估種子 | 42–46 / 10000–10099（互斥） |
 | 閉環迭代次數 | 5 |
+| 硬體 | RTX 4090 ×1 · CUDA 12.1 · PyTorch 2.5.1 |
 
 ### 4.3 統計方法
 
@@ -198,43 +199,46 @@ Input(obs_dim) → Linear(128) → ReLU → Linear(128) → ReLU
 
 ### 4.4 Part 1 主要結果
 
-**LunarLander-v3（密集獎勵）**
+**跨環境總表（env_native_mean，n=5；100 個未見 seed greedy playback）**
 
-| 條件 | Mean env reward | Success (≥200) | Crash (<0) | vs B0 p-value |
+| 條件 | LunarLander（密集）| CartPole（稀疏）| MountainCar（稀疏）| Acrobot（稀疏）|
 |---|---|---|---|---|
-| B0-env-native | 162.7 ± 28.4 | 53% | 14% | — |
-| B1-hand-shaped | 171.3 ± 31.2 | 58% | 11% | 0.412 |
-| B1g-gemma-nofix | 207.7 ± 45.6 | 78% | 7% | 0.038 |
-| B2-gemma-memory | 235.2 ± 91.3 | 80% | 3% | 0.047 |
-| **B3-hermes-full** | **241.8 ± 88.7** | **83%** | **2%** | **0.039** |
-| B3a-ablate-buffer | 198.4 ± 62.1 | 72% | 8% | 0.084 |
+| B0-env-native | 173.22 | 154.80 | −193.44 | −194.96 |
+| B1-handcrafted | 77.77 | 160.19 | −140.40 | −185.28 |
+| B2-gemma-oneshot | 152.65 | 187.64 | −153.09 | −83.21 |
+| **B3-hermes-full** | 153.56 | **334.44** | **−132.53** | −82.92 |
+| B3-no-memory | **248.77** | 243.21 | −168.55 | −83.23 |
+| B3-no-AST | 95.42 | 220.81 | −134.59 | −83.58 |
 
-> ⚠️ 記憶機制在密集獎勵環境負向效應：B3 vs B2 差異 p = 0.0317（記憶 hurt）；std 高達 91，出現 1 個近崩潰種子。
+**B3-hermes-full vs B0-env-native（主要假設驗證）**
 
-**稀疏獎勵環境摘要**
+| 環境 | Δ | Mann-Whitney p | 判定 |
+|---|---|---|---|
+| CartPole-v1（稀疏）| **+116.1%** | 0.0317 | WIN |
+| MountainCar-v0（稀疏）| **+31.5%** | 0.0112 | WIN |
+| Acrobot-v1（稀疏）| +57.5% | 0.0952 | 近 WIN（方向明確）|
+| LunarLander-v3（密集）| −11.4% | 1.0000 | n.s. |
 
-| 環境 | B0 Mean | B3 Mean | Δ | p-value | Effect size r |
-|---|---|---|---|---|---|
-| CartPole-v1 | 312.4 | 390.9 | +25% | 0.003 | 0.55（中大） |
-| MountainCar-v0 | −185.3 | −179.6 | −3%（更快） | 0.009 | 0.41（中） |
-| Acrobot-v1 | −412.7 | −345.2 | −16%（更快） | 0.003 | 0.55（中大） |
+> ⚠️ **記憶機制在密集獎勵環境的負向效應**：在 LunarLander，B3-hermes-full（153.56）顯著低於 B3-no-memory（248.77），Δ=−38.3%、p=0.0317；變異性 std=91.40，其中 seed_43 僅得 11.6 分（學到「貼地懸停但不降落」的退化策略）。相對地，三個稀疏環境的記憶效應為小幅正向且不顯著，變異性極低（MountainCar std=3.08、Acrobot std=4.39）。
 
 ### 4.5 Part 2 DQN 變體泛化結果
 
-**研究設計**：2 種 DQN 變體（Double、Dueling）× 4 環境 × 2 條件（B0 vs B3）× 5 seed = 80 runs
+**研究設計**：固定獎勵管線（僅比較 B0 vs B3-hermes-full），切換 2 種額外變體（Double、Dueling）× 4 環境 × 5 seed = 80 runs（vanilla 沿用 Part 1）。
 
-**核心發現一：Hermes 在所有變體上均顯著優於 B0**
+**核心發現一：「稀疏勝、密集反轉」型態在三種變體下一致重現**（Δ% = Hermes vs B0）
 
-| 環境 | Vanilla p | Double p | Dueling p |
+| 環境 | vanilla | Double | Dueling |
 |---|---|---|---|
-| LunarLander-v3 | 0.039 | 0.041 | 0.037 |
-| CartPole-v1 | 0.003 | 0.005 | 0.004 |
-| MountainCar-v0 | 0.009 | 0.011 | 0.008 |
-| Acrobot-v1 | 0.003 | 0.006 | 0.004 |
+| LunarLander-v3（密集）| −11.4%（n.s.）| −23.4%（n.s.）| −17.3%（n.s.）|
+| CartPole-v1（稀疏）| +116.1%（p=0.032）| +113.4%（n.s.）| +39.1%（n.s.）|
+| MountainCar-v0（稀疏）| +31.5%（p=0.011）| +31.0%（p=0.010）| +26.1%（p=0.045）|
+| Acrobot-v1（稀疏）| +57.5%（n.s.）| +65.3%（n.s.）| +22.9%（n.s.）|
+
+> 三個稀疏環境在所有變體下方向皆為正（9/9 格），其中 MountainCar 三變體皆達顯著；密集的 LunarLander 在所有變體下皆為負且不顯著——Part 1 的密度型態完整重現。（CartPole / Acrobot 方向明確但 p 因 B0 高變異而膨脹。）
 
 **核心發現二：不同 DQN 變體間的 Hermes 效益無顯著差異**
 
-Hermes-full 在三種變體（vanilla / double / dueling）之間的 pairwise 比較，無任何組合達到統計顯著（all p > 0.3），確認框架具備**模型無關性**（agent-agnostic）。
+Hermes-full 在三種變體（vanilla / Double / Dueling）之間的 pairwise 比較，無任何組合達到統計顯著（all p > 0.3），確認框架具備**模型無關性**（agent-agnostic）：獎勵設計的作用獨立於價值網路架構。
 
 ### 4.6 Demo 視覺化
 
@@ -257,11 +261,11 @@ Hermes-full 在三種變體（vanilla / double / dueling）之間的 pairwise �
 
 **主要發現：**
 
-1. **稀疏獎勵環境**：Hermes-full 相對 env-native baseline 提升 25–116%，效果顯著（p < 0.05）。開源 LLM + 記憶機制的組合在這類環境表現出真實的正向效益。
+1. **稀疏獎勵環境**：Hermes-full 相對 env-native baseline 提升 31.5–116.1%（CartPole / MountainCar 達顯著，Acrobot 方向明確、p=0.0952）。開源 LLM 撰寫的獎勵在原生訊號微弱時能解鎖學習瓶頸（B0 在 CartPole / MountainCar 成功率為 0%）。
 
 2. **密集獎勵環境**：記憶機制出現反向效應（p = 0.0317），high std（91+）顯示 LLM 生成的獎勵函數在密集塑形空間中容易偏離最優策略。此為本領域首次統計顯著的負向結果報告。
 
-3. **模型無關性（Part 2）**：Double DQN 與 Dueling DQN 下，Hermes 框架效益一致複現（variant 間 all p > 0.3），確認框架可直接插拔到不同 DQN 架構，無需重調。
+3. **模型無關性（Part 2）**：Double DQN 與 Dueling DQN 下，Part 1 的密度型態（稀疏正向、密集負向）一致複現，且 Hermes 在 variant 間 all p > 0.3，確認框架可直接插拔到不同 DQN 架構，無需重調。
 
 4. **獎勵密度假說**：任務的獎勵稀疏程度（reward density）是預測 Hermes 是否有效的候選指標——稀疏任務受益，密集任務有風險。
 

@@ -42,31 +42,35 @@ DRL 落地時最大的痛點是**獎勵函數設計**：獎勵稀疏、人工難
 
 ## 📈 實驗結果
 
-### Part 1：獎勵設計消融實驗（4 環境 × 5 seed）
+### Part 1：獎勵設計消融實驗（4 環境 × 6 condition × 5 seed）
 
-跨 **4 個 Gymnasium 環境**、**6 種 condition**、**5 seed** 的完整統計評估。
-所有 condition 以 env-native reward 在 100 未見 seed 上 greedy playback 評分（apples-to-apples）。
+跨 **4 個 Gymnasium 環境**、**6 種 condition**、**5 seed**（共 **120 runs**）的完整統計評估。
+所有 condition 以 env-native reward 在 **100 個未見 seed** 上 greedy playback 評分（apples-to-apples）；
+主要指標為 `env_native_mean`，檢定採雙尾 Mann-Whitney U（α=0.05）。
 
-**LunarLander-v3（密集獎勵）**
+**跨環境總表（env_native_mean，n=5）**
 
-| Condition | Mean env reward | Success (≥200) | Crash (<0) |
+| Condition | LunarLander（密集） | CartPole（稀疏） | MountainCar（稀疏） | Acrobot（稀疏） |
+| --- | --- | --- | --- | --- |
+| B0-env-native | 173.22 | 154.80 | −193.44 | −194.96 |
+| B1-handcrafted | 77.77 | 160.19 | −140.40 | −185.28 |
+| B2-gemma-oneshot | 152.65 | 187.64 | −153.09 | −83.21 |
+| **B3-hermes-full (Ours)** | 153.56 | **334.44** | **−132.53** | −82.92 |
+| B3-no-memory | **248.77** | 243.21 | −168.55 | −83.23 |
+| B3-no-AST | 95.42 | 220.81 | −134.59 | −83.58 |
+
+**B3-hermes-full vs B0-env-native（主結果）**
+
+| 環境 | Δ | Mann-Whitney p | 判定 |
 | --- | --- | --- | --- |
-| B0 env-native | 162.7 | 53% | 14% |
-| B1 Gemma (no memory) | 207.7 | 78% | 7% |
-| B2 Gemma + memory (empty) | 235.2 | 80% | 3% |
-| **B3 Hermes-full (Ours)** | **241.8** | **83%** | **2%** |
+| CartPole-v1（稀疏） | **+116.1%** | 0.0317 | WIN |
+| MountainCar-v0（稀疏） | **+31.5%** | 0.0112 | WIN |
+| Acrobot-v1（稀疏） | +57.5% | 0.0952 | 近 WIN |
+| LunarLander-v3（密集） | −11.4% | 1.0000 | n.s. |
 
-**CartPole-v1 / MountainCar-v0 / Acrobot-v1（稀疏獎勵）**
-
-Hermes-full 相對 env-native baseline：
-
-| 環境 | Δ Mean reward | Mann-Whitney p | 效果量 (r) |
-| --- | --- | --- | --- |
-| CartPole-v1 | +78.5 | < 0.001 | 0.72（大） |
-| MountainCar-v0 | −5.3（更快到達） | 0.009 | 0.41（中） |
-| Acrobot-v1 | −18.4（更快擺起） | 0.003 | 0.55（中大） |
-
-> 密集獎勵環境（LunarLander）Hermes 顯著超越 baseline；稀疏獎勵環境改善幅度相對較小但統計顯著。
+> **核心發現 —— 獎勵密度假說**：在 **3 個稀疏獎勵環境**，Hermes-full 相對 baseline 提升 **+31.5%～+116.1%**（B0 在 CartPole / MountainCar 的成功率為 0%）。
+> 但在**唯一的密集獎勵環境 LunarLander**，加入「記憶」反而**有害**——B3-hermes-full (153.56) 顯著低於 B3-no-memory (248.77)，**−38.3%、p=0.0317**。
+> 結論：記憶對 LLM 獎勵設計的效益**取決於獎勵密度**，並非永遠有益（破除「記憶必定有益」的迷思）。
 
 ---
 
@@ -79,11 +83,11 @@ Hermes-full 相對 env-native baseline：
 
 | 比較 | 結論 |
 | --- | --- |
-| B3-hermes-full vs B0-env-native（各變體） | 所有 4 環境、2 變體均統計顯著（p < 0.05） |
-| Hermes (vanilla) vs Hermes (Double) vs Hermes (Dueling) | 無任何 pairwise 比較達顯著差異（all p > 0.3） |
-| 密集 / 稀疏獎勵模式 | 跨所有 3 種 DQN 架構一致重現 |
+| 稀疏 / 密集模式 | 「稀疏勝、密集反轉」型態在 vanilla / Double / Dueling 三種架構下一致重現 |
+| MountainCar（B3 vs B0） | 三種變體下皆統計顯著（p < 0.05）；CartPole / Acrobot 方向一致但 p 受 B0 高變異膨脹 |
+| Hermes 跨變體（vanilla / Double / Dueling） | 任一 pairwise 比較皆未達顯著（all p > 0.3）→ 模型無關 |
 
-> Hermes reward 設計框架與底層 DQN 架構**解耦**，可直接插拔到任何 DQN 變體。
+> Hermes reward 設計框架與底層 DQN 架構**解耦**；其作用機制獨立於價值網路架構，可直接插拔到任何 DQN 變體。
 
 ---
 
@@ -112,9 +116,11 @@ Hermes-full 相對 env-native baseline：
 
 ## 📺 系統介紹影片
 
-[![系統介紹影片](https://img.youtube.com/vi/b4ad_7xtydk/maxresdefault.jpg)](https://youtu.be/b4ad_7xtydk)
+[![系統介紹影片（最終版）](https://img.youtube.com/vi/eUtwae1XG4Q/maxresdefault.jpg)](https://youtu.be/eUtwae1XG4Q)
 
-> 🎥 若縮圖無法顯示，可直接開啟 <https://youtu.be/b4ad_7xtydk>
+> 🎥 **最終版本** — 若縮圖無法顯示，可直接開啟 <https://youtu.be/eUtwae1XG4Q>
+>
+> 舊版本：<https://youtu.be/b4ad_7xtydk>
 
 ---
 
@@ -265,7 +271,8 @@ npm run dev:ending   # 更新 tasks.md → 寫新 handover → commit & push
 ## 🔗 連結
 
 - **GitHub**：<https://github.com/oomao/Final_project_Group5_DRL>
-- **影片**：<https://youtu.be/b4ad_7xtydk>
+- **影片（最終版）**：<https://youtu.be/eUtwae1XG4Q>
+- **影片（舊版）**：<https://youtu.be/b4ad_7xtydk>
 - **分支**：`main`
 - **英文論文**：[paper/hermes_dqn_paper_en.pdf](paper/hermes_dqn_paper_en.pdf)
 - **中文論文**：[paper/hermes_dqn_paper_zh.pdf](paper/hermes_dqn_paper_zh.pdf)

@@ -72,6 +72,8 @@ Any function matching the 7-argument signature works — including code generate
 
 Apples-to-apples evaluation (greedy playback on env-native reward, 100 unseen eval seeds 10000-10099). All on RTX 4090 / Windows 11 / Python 3.11 / torch 2.5.1+cu121.
 
+> ⚠️ **註**：本節為早期 **n=1 pilot**（單 seed，僅用於驗證機制端到端可運作）。最終的 **4 環境 × 6 條件 × 5 seed** 統計結果見[根目錄 README](../README.md#-實驗結果) 與 `paper/`。最終結論為**獎勵密度假說**：稀疏環境 Hermes-full 相對 baseline 提升 **+31.5%～+116.1%**，但密集環境（LunarLander）加入記憶反而**有害**（B3-hermes-full vs B3-no-memory：**−38.3%、p=0.0317**）。因此下方 pilot 的單 seed 觀察（如「llm 一律勝過 baseline」）在最終多 seed 統計中**不成立於密集環境**，請以最終結果為準。
+
 | Run | Reward source | Memory state | Priors used | Mean env reward | Success ≥200 | Crash <0 | Mean ep length |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `baseline_seed42` | env (native) | — | — | 162.72 | 53% | 14% | 265 |
