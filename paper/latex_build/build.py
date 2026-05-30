@@ -45,10 +45,7 @@ def md_to_tex_body(md_path: Path, out_path: Path) -> None:
 # ----------------------- template wrapper ----------------------
 
 PREAMBLE_EN = r"""
-\documentclass{article}
-
-% NeurIPS 2024 style (preprint mode = author names visible)
-\usepackage[preprint, nonatbib]{neurips_2024}
+\documentclass[conference,letterpaper,10pt]{IEEEtran}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -65,19 +62,21 @@ PREAMBLE_EN = r"""
 \usepackage{xcolor}
 \usepackage{graphicx}
 \usepackage{pifont}
+\usepackage{morefloats}
 % pandoc-emitted helpers
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \providecommand{\passthrough}[1]{#1}
-% pandoc 3.x wraps figures in \pandocbounded{...}; we preprocess them into
-% \PaperFig{path}{caption} via build.py, so just provide that macro here.
-% Compact figures so we keep within the typical 6-10 page conference range.
-\providecommand{\PaperFig}[2]{\begin{figure}[!htb]\centering\includegraphics[width=0.68\linewidth,height=0.20\textheight,keepaspectratio]{#1}\caption{\small #2}\end{figure}}
-% Tighten vertical spacing
-\setlength{\textfloatsep}{6pt plus 1pt minus 2pt}
-\setlength{\intextsep}{4pt plus 1pt minus 2pt}
-\setlength{\abovecaptionskip}{2pt}
-% pandoc emits "\def\LTcaptype{none}" for caption-less longtables; define a
-% throwaway counter so this compiles.
+% pandoc 3.x wraps figures in \pandocbounded{...}; build.py rewrites them into
+% \PaperFig{path}{caption}. In two-column IEEE, span data figures across both
+% columns (\figure*) so the plots stay legible.
+\providecommand{\PaperFig}[2]{\begin{figure*}[t]\centering\includegraphics[width=0.82\textwidth,height=0.30\textheight,keepaspectratio]{#1}\caption{#2}\end{figure*}}
+% Tighten list spacing (pandoc lists otherwise leave large gaps above/below)
+\usepackage{enumitem}
+\setlist{topsep=2pt, partopsep=0pt, itemsep=2pt, parsep=0pt}
+% Let TeX stretch the last line a bit to avoid minor overfull boxes (long
+% \texttt URLs / arXiv ids in references and the appendix).
+\setlength{\emergencystretch}{3em}
+% pandoc emits "\def\LTcaptype{none}" for caption-less longtables; harmless counter.
 \newcounter{none}
 % Where to find figure files (relative to this .tex file)
 \graphicspath{{figures/}{./}{../figures/}}
@@ -107,14 +106,15 @@ PREAMBLE_EN = r"""
 \DeclareUnicodeCharacter{03B4}{$\delta$}
 \DeclareUnicodeCharacter{03BC}{$\mu$}
 \DeclareUnicodeCharacter{03C3}{$\sigma$}
+% Arabic table numbers so in-text "Table N" matches the caption number
+% (figures are already arabic "Fig. N"; sections stay Roman per IEEE).
+\renewcommand{\thetable}{\arabic{table}}
 
 \title{Hermes-DQN: When Does Memory-Augmented LLM Reward Design Help DQN? A 4-Environment Analysis}
 
-\author{%
-  ShengMao Chen, Hsienan Lin, YuJou Hsin, KuanYu Chen \\[3pt]
-  \small Department of Management Information Systems \\
-  \small National Chung Hsing University
-}
+\author{\IEEEauthorblockN{ShengMao Chen, Hsienan Lin, YuJou Hsin, KuanYu Chen}
+\IEEEauthorblockA{Department of Management Information Systems\\
+National Chung Hsing University}}
 
 \begin{document}
 \maketitle
@@ -129,15 +129,11 @@ POSTAMBLE = r"""
 # loading SimHei/SimSun (which aren't installed on Trad-Chinese Windows). We
 # set Traditional-Chinese fonts manually via xeCJK below.
 PREAMBLE_ZH = r"""
-\documentclass[UTF8,fontset=none,10pt]{ctexart}
+\documentclass[conference,letterpaper,10pt]{IEEEtran}
 
-\usepackage[letterpaper, top=1in, bottom=1in, left=1.25in, right=1.25in]{geometry}
-\linespread{1.12}
+% Traditional-Chinese support layered on IEEEtran (compiled with xelatex).
+% Latin text uses IEEEtran's default (Times-like) font; CJK uses DFKai-SB.
 \usepackage{xeCJK}
-% Latin / numbers: Times New Roman
-\setmainfont{Times New Roman}
-\setsansfont{Times New Roman}
-% Chinese: 標楷體 (DFKai-SB)
 \setCJKmainfont[BoldFont=DFKai-SB, ItalicFont=DFKai-SB]{DFKai-SB}
 \setCJKsansfont{DFKai-SB}
 \setCJKmonofont{DFKai-SB}
@@ -155,27 +151,28 @@ PREAMBLE_ZH = r"""
 \usepackage{microtype}
 \usepackage{xcolor}
 \usepackage{graphicx}
-\usepackage{titlesec}
-% Section title formatting (mimic NeurIPS)
-\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
-\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
-\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+\usepackage{morefloats}
+\usepackage{enumitem}
+\setlist{topsep=2pt, partopsep=0pt, itemsep=2pt, parsep=0pt}
+\setlength{\emergencystretch}{3em}
 
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \providecommand{\passthrough}[1]{#1}
-\providecommand{\PaperFig}[2]{\begin{figure}[!htb]\centering\includegraphics[width=0.68\linewidth,height=0.20\textheight,keepaspectratio]{#1}\caption{\small #2}\end{figure}}
+% Two-column: span data figures across both columns so plots stay legible.
+\providecommand{\PaperFig}[2]{\begin{figure*}[t]\centering\includegraphics[width=0.82\textwidth,height=0.30\textheight,keepaspectratio]{#1}\caption{#2}\end{figure*}}
 \newcounter{none}
 \graphicspath{{figures/}{./}{../figures/}}
-% Tighten vertical spacing for compactness
-\setlength{\textfloatsep}{6pt plus 1pt minus 2pt}
-\setlength{\intextsep}{4pt plus 1pt minus 2pt}
-\setlength{\abovecaptionskip}{2pt}
-\setlength{\parskip}{0pt}
 
-% xelatex needs glyphs to come from a font that contains them. Microsoft
-% JhengHei does NOT include Greek letters, empty-set, check-mark, or many
-% math symbols, so we map those Unicode codepoints to math/pifont commands
-% (similar to \DeclareUnicodeCharacter for pdflatex).
+% Arabic section / subsection / table numbers: natural for a Chinese paper and
+% matches the existing "第 N 節" / "N.M 節" / "表 N" / "圖 N" cross-references.
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+% IEEEtran shows the *heading* number via \the...dis; override so subsections
+% display as "6.4" (arabic) to match the Chinese "6.4 節" cross-references.
+\renewcommand{\thesubsectiondis}{\thesection.\arabic{subsection}}
+\renewcommand{\thetable}{\arabic{table}}
+
+% xelatex: map glyphs missing from the CJK/Latin fonts to math/pifont commands.
 \usepackage{newunicodechar}
 \newunicodechar{∅}{$\varnothing$}
 \newunicodechar{✓}{\ding{51}}
@@ -194,21 +191,76 @@ PREAMBLE_ZH = r"""
 \newunicodechar{σ}{$\sigma$}
 \newunicodechar{Δ}{$\Delta$}
 
-% ctex uses Simplified-Chinese figure/table labels by default ("图" / "表"); the
-% paper body is Traditional Chinese, so override to "圖" / "表" for consistency.
+% IEEEtran defaults to English "Fig."/"TABLE"; use Traditional-Chinese labels.
 \renewcommand{\figurename}{圖}
 \renewcommand{\tablename}{表}
 
 \title{Hermes-DQN:記憶擴增之大型語言模型獎勵設計何時對 DQN 有效?四環境分析}
-\author{%
-  陳盛茂、林仙安、辛語柔、陳冠宇 \\[3pt]
-  \small 國立中興大學　資訊管理學研究所
-}
-\date{}
+\author{\IEEEauthorblockN{陳盛茂、林仙安、辛語柔、陳冠宇}
+\IEEEauthorblockA{國立中興大學　資訊管理學研究所}}
 
 \begin{document}
 \maketitle
 """
+
+
+# ----------------------- IEEE table conversion (EN only) ----------------------
+
+def ieee_tables(tex: str) -> str:
+    """Rewrite pandoc longtables as IEEE two-column floats.
+
+    longtable is illegal in two-column mode, so each longtable becomes a
+    full-width ``table*`` float holding a booktabs ``tabular``. Tables with a
+    preceding ``\\textbf{Table N: ...}`` label get a ``\\caption``; the small
+    unlabelled tables (conditions / environments / setup) become caption-less
+    full-width floats.
+    """
+    def body_to_tabular(body: str) -> str:
+        body = body.replace(r"\noalign{}", "")
+        body = re.sub(r"\\endfirsthead", "", body)
+        body = re.sub(r"\\endhead", "", body)
+        # the longtable foot ("\bottomrule \endlastfoot") is written before the
+        # data rows; drop it and re-append a single \bottomrule at the end.
+        body = re.sub(r"\\bottomrule\s*\\endlastfoot", "", body)
+        body = re.sub(r"\\endlastfoot", "", body)
+        rows = [ln for ln in body.split("\n") if ln.strip()]
+        return "\n".join(rows) + "\n\\bottomrule"
+
+    cap_pat = re.compile(
+        r"\\textbf\{(?:Table|表)\s*\d+[:：]\s*([^}]*)\}([^\n]*)\n\s*\n"
+        r"\{\\def\\LTcaptype\{none\}[^\n]*\n(?:\\small\n)?"
+        r"\\begin\{longtable\}\[\]\{([^\n]*)\}[ \t]*\n"
+        r"(.*?)\\end\{longtable\}\s*\}",
+        re.DOTALL,
+    )
+
+    def cap_repl(m):
+        title, rest, cols, body = m.groups()
+        cap = (title.strip() + rest).strip()
+        return (
+            "\\begin{table*}[t]\n\\centering\n\\caption{%s}\n\\small\n"
+            "\\begin{tabular}{%s}\n%s\n\\end{tabular}\n\\end{table*}\n"
+            % (cap, cols, body_to_tabular(body))
+        )
+
+    tex = cap_pat.sub(cap_repl, tex)
+
+    unc_pat = re.compile(
+        r"\{\\def\\LTcaptype\{none\}[^\n]*\n(?:\\small\n)?"
+        r"\\begin\{longtable\}\[\]\{([^\n]*)\}[ \t]*\n"
+        r"(.*?)\\end\{longtable\}\s*\}",
+        re.DOTALL,
+    )
+
+    def unc_repl(m):
+        cols, body = m.groups()
+        return (
+            "\\begin{table*}[t]\n\\centering\n\\small\n"
+            "\\begin{tabular}{%s}\n%s\n\\end{tabular}\n\\end{table*}\n"
+            % (cols, body_to_tabular(body))
+        )
+
+    return unc_pat.sub(unc_repl, tex)
 
 
 # ----------------------- body cleanup ----------------------
@@ -332,15 +384,35 @@ def cleanup_body(tex: str, lang: str) -> str:
     tex = tex.replace("\\subsection", "\\section")
     tex = tex.replace("\\TMP_subsec", "\\subsection")
 
-    # Shrink longtables (some are wider than \linewidth at default \normalsize).
-    # Wrap each longtable group with {\small ...} but only the outer one — the
-    # body already has {\def\LTcaptype{none} \begin{longtable}...\end{longtable}}
-    # so we just add \small inside that scope.
+    # Tables. EN builds in two-column IEEE, where longtable is illegal, so each
+    # longtable is rewritten as a full-width table* float. ZH stays single-column
+    # NeurIPS, so just shrink the longtables with \small inside their scope.
+    # Both EN and ZH build in two-column IEEE, where longtable is illegal, so
+    # every longtable becomes a full-width table* float.
+    tex = ieee_tables(tex)
+    # The closed-loop pseudocode is too wide for one column; span it across both
+    # columns as a full-width float. No \caption, so it does NOT consume a figure
+    # number (in-text "Figure N" / "圖 N" refs are numbered for captioned figs only).
     tex = re.sub(
-        r"(\\def\\LTcaptype\{none\}\s*(?:%[^\n]*)?\n)(\\begin\{longtable\})",
-        r"\1\\small\n\2",
+        r"\\begin\{verbatim\}(.*?)\\end\{verbatim\}",
+        lambda m: (
+            "\\begin{figure*}[t]\n\\centering\n\\small\n\\begin{verbatim}"
+            + m.group(1)
+            + "\\end{verbatim}\n\\end{figure*}"
+        ),
         tex,
+        flags=re.DOTALL,
     )
+    # Long \texttt URLs/paths (appendix) don't break in a narrow column; render
+    # the slash-containing ones with \url so they wrap.
+    def _tt_url(m):
+        inner = m.group(1)
+        if "/" in inner:
+            raw = (inner.replace("\\_", "_").replace("\\#", "#")
+                   .replace("\\%", "%").replace("\\&", "&").replace("\\$", "$"))
+            return "\\url{" + raw + "}"
+        return m.group(0)
+    tex = re.sub(r"\\texttt\{([^{}]*)\}", _tt_url, tex)
 
     # Convert "Abstract" section into abstract environment (both EN and ZH use
     # the English heading "Abstract" — ZH now uses English H2 titles too).
@@ -368,6 +440,14 @@ def cleanup_body(tex: str, lang: str) -> str:
     tex = re.sub(r"\\section\{Appendix [A-Z][^}]*\}",
                  lambda m: "\\section*{" + m.group(0)[len("\\section{"):-1] + "}",
                  tex)
+
+    # IEEE numbered references: render the bibliography list as [1], [2], ...
+    tex = re.sub(
+        r"(\\section\*\{References\}\s*\n+\\begin\{enumerate\}\s*\n)"
+        r"\\def\\labelenumi\{\\arabic\{enumi\}\.\}",
+        r"\1\\def\\labelenumi{[\\arabic{enumi}]}",
+        tex,
+    )
 
     return tex
 
