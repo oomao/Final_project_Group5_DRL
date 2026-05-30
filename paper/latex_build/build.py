@@ -116,8 +116,10 @@ PREAMBLE_EN = r"""
 \IEEEauthorblockA{Department of Management Information Systems\\
 National Chung Hsing University}}
 
+\pagestyle{plain}
 \begin{document}
 \maketitle
+\thispagestyle{plain}
 """
 
 POSTAMBLE = r"""
@@ -129,14 +131,22 @@ POSTAMBLE = r"""
 # loading SimHei/SimSun (which aren't installed on Trad-Chinese Windows). We
 # set Traditional-Chinese fonts manually via xeCJK below.
 PREAMBLE_ZH = r"""
-\documentclass[conference,letterpaper,10pt]{IEEEtran}
+\documentclass[conference,onecolumn,letterpaper,10pt]{IEEEtran}
 
 % Traditional-Chinese support layered on IEEEtran (compiled with xelatex).
+% Single column + looser leading: Chinese is denser than Latin and reads badly
+% in a narrow two-column measure.
 % Latin text uses IEEEtran's default (Times-like) font; CJK uses DFKai-SB.
 \usepackage{xeCJK}
 \setCJKmainfont[BoldFont=DFKai-SB, ItalicFont=DFKai-SB]{DFKai-SB}
 \setCJKsansfont{DFKai-SB}
 \setCJKmonofont{DFKai-SB}
+% Looser leading + a little paragraph spacing so the dense Chinese paragraphs
+% (long, comma-joined sentences) get room to breathe, without ballooning pages.
+\linespread{1.35}
+\setlength{\parskip}{3pt plus 1pt}
+% Slightly wider margins → shorter line measure, easier on the eye for CJK.
+\usepackage[letterpaper,top=1in,bottom=1in,left=1.25in,right=1.25in]{geometry}
 
 \usepackage{amsfonts}
 \usepackage{amsmath}
@@ -199,8 +209,10 @@ PREAMBLE_ZH = r"""
 \author{\IEEEauthorblockN{陳盛茂、林仙安、辛語柔、陳冠宇}
 \IEEEauthorblockA{國立中興大學　資訊管理學研究所}}
 
+\pagestyle{plain}
 \begin{document}
 \maketitle
+\thispagestyle{plain}
 """
 
 
@@ -379,9 +391,11 @@ def cleanup_body(tex: str, lang: str) -> str:
         count=1,
         flags=re.MULTILINE,
     )
-    # Now swap subsection->section and subsubsection->subsection
+    # Now swap subsection->section, subsubsection->subsection, and paragraph->
+    # subsubsection (markdown H4 "#### 4.2.1" nests as a subsubsection under 4.2).
     tex = tex.replace("\\subsubsection", "\\TMP_subsec")
     tex = tex.replace("\\subsection", "\\section")
+    tex = tex.replace("\\paragraph", "\\subsubsection")
     tex = tex.replace("\\TMP_subsec", "\\subsection")
 
     # Tables. EN builds in two-column IEEE, where longtable is illegal, so each
@@ -430,6 +444,7 @@ def cleanup_body(tex: str, lang: str) -> str:
     # original markdown -> now \subsection in TeX) first, then shorter prefixes.
     # The ZH paper has H3 like "### 4.2.1 LunarLander" which becomes
     # \subsection{4.2.1 LunarLander} after promotion; we must consume "4.2.1 ".
+    tex = re.sub(r"\\subsubsection\{(\d+\.\d+\.\d+)\.?\s+", r"\\subsubsection{", tex)
     tex = re.sub(r"\\subsection\{(\d+\.\d+\.\d+)\.?\s+", r"\\subsection{", tex)
     tex = re.sub(r"\\subsection\{(\d+\.\d+)\.?\s+", r"\\subsection{", tex)
     tex = re.sub(r"\\section\{(\d+)\.\s+", r"\\section{", tex)

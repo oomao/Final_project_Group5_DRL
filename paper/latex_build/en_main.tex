@@ -70,8 +70,10 @@
 \IEEEauthorblockA{Department of Management Information Systems\\
 National Chung Hsing University}}
 
+\pagestyle{plain}
 \begin{document}
 \maketitle
+\thispagestyle{plain}
 
 \begin{abstract}
 EUREKA {[}1{]} established that large language models can author reward functions that outperform human-engineered shaping. Follow-up work has assumed the recipe generalizes: switch to open-source LLMs (cost), add cross-iteration memory (refinement), augment the replay buffer (stability). This study tests that assumption with Hermes-DQN, which combines all three: Google Gemma 4 31B as the reward author, a four-tier memory architecture (Procedural / Semantic / Episodic / Working) inspired by Nous Research\textquotesingle s Hermes Agent, and an AST-aware replay buffer manager. Across four classical-control environments (LunarLander-v3, CartPole-v1, MountainCar-v0, Acrobot-v1) with n=5 seeds per condition and six conditions per environment (vanilla, hand-shaped, single-shot Gemma, full Hermes, two ablations), the results reveal a task-dependent reversal: on the three sparse-reward environments tested, B3-hermes-full outperforms the env-native baseline (B0) by approximately 31--116\% (statistically significant at p\textless0.05 on 2/3); on the one dense-reward environment, Hermes is statistically tied with the baseline AND its memory mechanism is associated with reduced performance (p=0.0317, −38\%). A separate variance signature emerges that tracks shaping-space richness rather than reward density: in this evaluation, Hermes is hyper-consistent on the two simple-physics environments (std=3--4) but high-variance on both rich-shaping environments (CartPole std=113; LunarLander std=91, with one near-failure seed). LLM-authored reward design is therefore not a universal upgrade in the configuration tested; its value appears conditional on the host task\textquotesingle s reward sparsity. Reward density is proposed as a candidate predictor.
@@ -349,19 +351,19 @@ Acrobot & −82.92 & \textbf{4.39} & {[}−89.98, −78.62{]} & extreme stabilit
 \end{table*}
 
 
-\subsection{LunarLander-v3 (dense reward)}
+\subsubsection{LunarLander-v3 (dense reward)}
 
 LunarLander is the only dense-reward environment in the set, and the only one on which the native reward already provides a strong learning signal. B0-env-native reaches 173.22 mean return, close to the official 200-point "solved" threshold. The setting is therefore the natural stress test for adding LLM-authored shaping on top of an already-informative reward. Table 2 indicates that B3-hermes-full (153.56) is statistically tied with B0 (173.22, p=1.0000). The more revealing comparison is in Table 3: B3-no-memory reaches 248.77 --- above the solved threshold --- while B3-hermes-full falls to 153.56 (p=0.0317, −38.3\%). In this configuration, the memory mechanism is associated with a significant performance loss. Per-seed variance reinforces the point: B3-hermes-full has std=91.40 with one near-zero seed at 11.60 (see Fig. 7 and the seed-43 discussion in Section VI-B), whereas B3-no-memory has std=14.66.
 
-\subsection{CartPole-v1 (sparse, +1 per alive step)}
+\subsubsection{CartPole-v1 (sparse, +1 per alive step)}
 
 CartPole is the textbook sparse-reward task with a known easy ceiling (the v1 cap is 500). B0-env-native reaches 154.80, far from the cap; the +1-per-step signal alone is too weak for vanilla DQN to consistently solve the task in the training budget. B3-hermes-full reaches 334.44 (+116.1\% over B0, p=0.0317), the largest relative gain in the set. The win is real but variable: std=113.18 with a range of {[}175.23, 485.23{]}. Fig. 2 visualizes the per-condition distributions and shows that B3-hermes-full\textquotesingle s lift over B0, B1, and B2 is driven by both an upward shift and a widened tail. CartPole is the clearest demonstration in this study that LLM-authored shaping unlocks a task that vanilla DQN does not solve at 100 evaluation seeds.
 
-\subsection{MountainCar-v0 (sparse, −1 per step)}
+\subsubsection{MountainCar-v0 (sparse, −1 per step)}
 
 MountainCar shows the tightest variance signature in the study: std=3.08 across the five B3-hermes-full seeds, all within the range {[}−135.87, −129.38{]}. B3-hermes-full reaches −132.53 (+31.5\% over B0=−193.44, p=0.0112) --- all 5 seeds converge to nearly the same return. The +0.5-per-step momentum-shaped reward Gemma authors here is close to the canonical hand-shaped baseline from the literature, which is consistent with the hypothesis that single-goal tasks admit a near-optimal shaping that the LLM reliably finds. Fig. 8 illustrates per-iteration trajectories for MountainCar alongside LunarLander, displaying the chaos-versus-stability contrast across the two reward regimes.
 
-\subsection{Acrobot-v1 (sparse, −1 per step)}
+\subsubsection{Acrobot-v1 (sparse, −1 per step)}
 
 Acrobot is the case that does not pass the strict win criterion. B3-hermes-full reaches −82.92 versus B0=−194.96 (Δ=+57.5\%), but the Mann-Whitney p is 0.0952 --- directional and large in effect size, yet failing the α=0.05 threshold. Two of the five B0 seeds diverge to env\_native\_mean ≤ −200, inflating B0\textquotesingle s variance and widening its bootstrap CI; this is one of the cases anticipated in Section III-E\textquotesingle s "seed retention" caveat. B2-gemma-oneshot (−83.21) and B3-no-memory (−83.23) are both close to B3-hermes-full, suggesting that on Acrobot any reasonable LLM-authored shaping is sufficient and the memory mechanism contributes little. Variance is low (std=4.39), matching MountainCar\textquotesingle s stability pattern.
 
