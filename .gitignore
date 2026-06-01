@@ -42,3 +42,7 @@ paper/latex_build/*.out
 paper/latex_build/*.synctex.gz
 paper/latex_build/en_main.pdf
 paper/latex_build/zh_main.pdf
+
+# Slide-skill working area (cloned repos + alt decks, not part of the project)
+_slide_skills/
+PPT/_tmp_preview/
