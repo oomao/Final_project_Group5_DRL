@@ -4,7 +4,7 @@
 > **日期**：2026-06-01
 > **參與者**：Mao × Claude
 > **產出**：15 分鐘逐頁口白、三個 HTML 簡報 SKILL 並排比較、選定 guizang 瑞士風並精修成最終版、重生一支 P7 關鍵 demo GIF
-> **最終檔案**：`PPT/研討會簡報/`（index.html + images/ + assets/ + PDF + 口白）
+> **最終檔案**：`PPT/研討會簡報/`（index.html + images/ + assets/ + PDF + README；口白與範例為本機保留、不上傳）
 
 ---
 
@@ -12,7 +12,9 @@
 
 先前已有一份「影片用」的簡報（`PPT/PPT_最終版.pdf`，NotebookLM 手繪／白底便利貼風，由 `PPT/build_deck.py` 產生）。本次目標是另做一份**研討會口頭報告**用的簡報，時長約 15 分鐘，台下是專精 DRL 的指導老師，要求「以最簡單的方式呈現最數據的直覺」。
 
-整個過程分六個階段：① 口白製作 → ② 三個 SKILL 比較 → ③ 選定 guizang 並初步修正 → ④ 淺色化／放大字級／白話化／嵌 GIF → ⑤ 重生 seed_43 懸停 GIF → ⑥ 現場呈現方式與檔案歸位。
+整個過程分七個階段：① 口白製作 → ② 三個 SKILL 比較 → ③ 選定 guizang 並初步修正 → ④ 淺色化／放大字級／白話化／嵌 GIF → ⑤ 重生 seed_43 懸停 GIF → ⑥ 現場呈現方式與檔案歸位 → ⑦ 改框架為 Final Project、五章重構、18 頁定版。
+
+> 補記：本案後續從「研討會」改框架為 **深度強化學習 Final Project 期末專題報告**，比照老師最滿意的參考簡報（碩士口試式）重構為五章、18 頁定版（見階段七）。
 
 ---
 
@@ -87,6 +89,27 @@
 **怎麼讓 GIF 動**：用瀏覽器開 `index.html`（不是 PowerPoint）→ F11 全螢幕 → ←→ 翻頁，GIF 自動循環播放。整包資料夾要一起帶（index.html + images/ + assets/）。PDF 為靜態備案。
 
 **檔案歸位**：把整包簡報複製到 `PPT/研討會簡報/`，與既有影片版 PPT 並存。新增 `tools/gen_p7_gif.py`、`tools/generate_presentation_gifs.py`、`paper/gifs/presentation/*.gif`、`paper/conference_talk_15min_zh.md`，push main。
+
+---
+
+## 階段七 · 改為 Final Project 報告：五章重構與 18 頁定版
+
+使用者澄清：這份是**深度強化學習課程的 Final Project 期末專題報告**（不是研討會），並提供老師最滿意的參考簡報 `PPT參考.pptx`（碩士口試，38 頁），希望「**內容呈現方式**」向它靠齊（非美觀／風格，視覺維持我們的 Swiss 淺色）、但用中文、頁數更少。
+
+**分析參考簡報的呈現公式**（Windows 無 LibreOffice、skill 轉檔器走 Linux socket 失敗 → 改用 python-pptx 抽全文＋結構分析）：五章（Motivation → Related Works → Proposed Method → Experimental Results → Conclusion）＋ Outline 頁 ＋ 每頁固定章節標頭「Ch.X 章名 (n/N)」＋ 大頁碼 ＋ 就地引用 [N] ＋ 一頁一重點 ＋ 結尾 Contributions / Limitations / Future works。
+
+**重構與多輪精修**：
+1. **五章重構**：原「結論先講」12 頁倒敘 → 傳統依序講；精簡成 16 頁（Outline＋章節標頭＋大頁碼＋就地引用＋Conclusion 三段）。
+2. **淺色化收尾**：研究缺口黑卡、記憶 Working 層等殘留深色塊改淺灰；引用行加 `max-width:73vw` 避免撞右下角翻頁提示。
+3. **理性用字**：移除 ★／全場重心／解鎖／「只在…才」等浮誇字眼（同步改口白）。
+4. **Reframe 研討會 → Final Project**：封面 chrome、README、口白標題改「深度強化學習 期末專題」。
+5. **封面英文化**：大字 Hermes-DQN ＋ 英文主標「Memory-Augmented LLM Framework for Automated RL Reward Design」＋ 中文小副標（學術式雙語封面）。
+6. **系統方法放論文架構圖** `fig1_architecture.png`。
+7. **Ch.4 每個結果都配 demo GIF（GIF 左＋數據右一致版面）**：結果一 `grid_2x2`、結果二 `p7_memory_harm`、結果三 **新重生** `variance_fingerprint`（`tools/gen_variance_gif.py`：上排 MountainCar 三 seed 幾乎一致、下排 LunarLander 三 seed 分歧，演示變異）、結果四 `dqn_compare_cp`；並新增 **結果總表**（六條件 × 四環境 env-native mean）。
+8. **結尾加 Thank You / Q&A 頁**；定版 **18 頁**，頁碼全重編、Ch.4 變 (n/6)。
+9. **口白同步 18 頁版**（時間表約 16 分、含章節轉場與 Q&A 防禦十題）。
+
+**Push（commit 1505d3a）**：依使用者要求，**範例 `PPT參考.pptx` 與口白稿（`口白_15分鐘.md`、`paper/conference_talk_15min_zh.md`）不上傳**——加入 `.gitignore`、從 repo 移除、本機保留。GitHub 上 `PPT/研討會簡報/` 僅含 index.html＋images＋assets＋PDF＋README。
 
 ---
 
