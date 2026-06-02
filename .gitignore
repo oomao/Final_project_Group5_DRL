@@ -46,3 +46,8 @@ paper/latex_build/zh_main.pdf
 # Slide-skill working area (cloned repos + alt decks, not part of the project)
 _slide_skills/
 PPT/_tmp_preview/
+
+# Final Project deck: reference example + speaker notes are LOCAL-ONLY (not uploaded)
+PPT/研討會簡報/PPT參考.pptx
+PPT/研討會簡報/口白_15分鐘.md
+paper/conference_talk_15min_zh.md

@@ -1169,6 +1169,102 @@
   }
   .slide.dark .canvas-card .chrome-min,.split-half .half.b-ink .canvas-card .chrome-min{color:rgba(255,255,255,.62)}
 
+  /* ============================================================
+     ↓↓↓ 期末專題傳統 5 章版 · 章節頁慣例 (chapter eyebrow + big page numeral + cite)
+     ============================================================ */
+
+  /* 章節 eyebrow: 左上「Ch. X 章名 (n/N)」— mono, ≥15px, "Ch.X" 用 IKB accent */
+  .ch-eyebrow{
+    display:flex;align-items:baseline;gap:.7em;flex-wrap:wrap;
+    font-family:var(--mono);
+    font-size:16px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;
+    color:var(--text-secondary);line-height:1.3;
+  }
+  .ch-eyebrow .ch-no{color:var(--accent);font-weight:700}
+  .ch-eyebrow .ch-nm{color:var(--text-primary);font-weight:600;letter-spacing:.04em}
+  .ch-eyebrow .ch-prog{color:var(--text-helper);font-weight:500;letter-spacing:.1em}
+  .slide.dark .ch-eyebrow{color:rgba(255,255,255,.6)}
+  .slide.dark .ch-eyebrow .ch-nm{color:#fff}
+
+  /* 巨大淡灰頁碼數字 — Swiss 裝飾元素,放底左或頭後方,絕不壓正文對比 */
+  .page-numeral{
+    position:absolute;
+    font-family:var(--sans);font-weight:200;
+    font-size:min(20vw,30vh);line-height:.8;
+    letter-spacing:-.05em;
+    color:var(--grey-1);            /* 極淡灰,低於正文對比 */
+    z-index:0;pointer-events:none;user-select:none;
+    font-feature-settings:"tnum";
+  }
+  .page-numeral.bl{left:3.4vw;bottom:1.2vh}      /* 底左 */
+  .page-numeral.br{right:3.4vw;bottom:1.2vh;text-align:right}
+  .slide.dark .page-numeral{color:rgba(255,255,255,.06)}
+  .slide.accent .page-numeral{color:rgba(255,255,255,.10)}
+  /* canvas-card 內所有實際內容浮在淡頁碼之上 */
+  .canvas-card > .page-numeral{z-index:0}
+
+  /* 底部緊湊參考文獻行 — small meta */
+  .cite-line{
+    font-family:var(--mono);
+    font-size:14px;font-weight:500;
+    letter-spacing:.06em;
+    color:var(--text-helper);line-height:1.45;
+    text-transform:none;max-width:73vw;
+  }
+  .cite-line .ref{margin-right:1.3em;white-space:nowrap;display:inline-block}
+  .cite-line .ref b{color:var(--text-secondary);font-weight:600;font-family:var(--mono)}
+  .slide.dark .cite-line{color:rgba(255,255,255,.5)}
+
+  /* 內文引註 [N] 標記 */
+  .cref{
+    font-family:var(--mono);font-weight:600;
+    font-size:.78em;color:var(--accent);
+    vertical-align:.35em;letter-spacing:.02em;margin-left:.1em;
+  }
+
+  /* 大綱頁章節列 */
+  .outline-row{
+    display:grid;grid-template-columns:auto 1fr auto;gap:2.2vw;align-items:center;
+    padding:2.4vh 0;border-top:1px solid var(--border-subtle);
+  }
+  .outline-row:last-child{border-bottom:1px solid var(--border-subtle)}
+  .outline-row .o-no{
+    font-family:var(--sans);font-weight:200;
+    font-size:min(5.4vw,9vh);line-height:.85;letter-spacing:-.04em;
+    color:var(--accent);font-feature-settings:"tnum";min-width:2.4ch
+  }
+  .outline-row .o-zh{
+    font-family:var(--sans),var(--sans-zh);font-weight:400;
+    font-size:max(24px,2.2vw);line-height:1.1;letter-spacing:-.01em;color:var(--text-primary)
+  }
+  .outline-row .o-en{
+    font-family:var(--mono);font-weight:500;font-size:max(15px,.92vw);
+    letter-spacing:.12em;text-transform:uppercase;color:var(--text-helper);text-align:right;white-space:nowrap
+  }
+
+  /* 比較表 (Related Works) — 純發絲線網格 */
+  .cmp-table{display:grid;width:100%;font-feature-settings:"tnum"}
+  .cmp-table .cmp-cell{
+    padding:1.5vh 1.4vw;border-bottom:1px solid var(--border-subtle);
+    display:flex;flex-direction:column;justify-content:center;min-width:0
+  }
+  .cmp-table .cmp-head{
+    font-family:var(--mono);font-weight:600;font-size:max(15px,.9vw);
+    letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);
+    border-bottom:2px solid var(--ink);padding:1.2vh 1.4vw
+  }
+  .cmp-table .cmp-head.accent{color:var(--accent);border-bottom-color:var(--accent)}
+  .cmp-table .cmp-row-h{
+    font-family:var(--sans),var(--sans-zh);font-weight:600;font-size:max(19px,1.3vw);
+    letter-spacing:-.01em;color:var(--text-primary)
+  }
+  .cmp-table .cmp-row-h.accent{color:var(--accent)}
+  .cmp-table .cmp-sub{font-family:var(--mono);font-size:max(14px,.8vw);color:var(--text-helper);letter-spacing:.06em;margin-top:.4vh}
+  .cmp-table .cmp-val{font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(17px,1.02vw);line-height:1.4;color:var(--text-secondary)}
+  .cmp-table .cmp-val strong{font-weight:600;color:var(--text-primary)}
+  .cmp-table .cmp-val.accent strong{color:var(--accent)}
+
   /* 响应式降级 */
   @media (max-width:900px){
     .h-hero{font-size:16vw}
@@ -1230,33 +1326,32 @@
      - 主题色配置参考 references/themes-swiss.md (默认 IKB 克莱因蓝) -->
 
 <!-- ============================================================
-     Hermes-DQN · 研討會簡報 · 12 頁 · 風格 B 瑞士國際主義 · IKB 克萊因藍
+     Hermes-DQN · 深度強化學習期末專題 · 16 頁 · 傳統 5 章 (Motivation→Conclusion)
+     風格 B 瑞士國際主義 · IKB 克萊因藍 · 亮底
      ============================================================ -->
 
-<!-- ===== P1 · 封面 · SWISS-COVER-ASCII · 亮底 + 極淡 ASCII 呼吸場 ===== -->
+<!-- ===== 01 · 封面 · SWISS-COVER-ASCII · 亮底 + 極淡 ASCII 呼吸場 ===== -->
 <section class="slide" data-layout="SWISS-COVER-ASCII" data-animate="hero">
   <div class="canvas-card">
     <canvas class="ascii-bg" aria-hidden="true"></canvas>
     <div class="chrome-min">
-      <div class="l">HERMES-DQN · 研討會口頭報告</div>
-      <div class="r">NCHU MIS · 2026 · 01 / 12</div>
+      <div class="l">HERMES-DQN · 深度強化學習 期末專題</div>
+      <div class="r">第五組 · 2026 · 01 / 18</div>
     </div>
 
-    <div style="flex:1;padding:0;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto 1fr auto;gap:2.6vh 3vw;align-items:start">
-      <div data-anim="kicker" class="t-meta accent" style="grid-column:1/-1;letter-spacing:.22em;color:var(--accent)">Memory-Augmented LLM Reward Design</div>
+    <div style="flex:1;padding:0;display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr auto;gap:2.2vh 3vw;align-items:start">
+      <div data-anim="kicker" class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">深度強化學習 期末專題 · 第五組</div>
 
-      <h1 data-anim="title" style="grid-column:1/2;align-self:center;font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(7vw,13vh);line-height:1.04;letter-spacing:-.02em;color:var(--ink)">記憶擴增之<br/>大型語言模型<br/><span style="font-weight:300;color:var(--accent)">獎勵設計</span>框架</h1>
+      <div data-anim="title" style="align-self:center;display:flex;flex-direction:column;gap:1.6vh">
+        <h1 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(11vw,15vh);line-height:.92;letter-spacing:-.04em;color:var(--ink)">Hermes-DQN</h1>
+        <div style="font-family:var(--sans),var(--sans-zh);font-weight:300;font-size:min(3.4vw,4.8vh);line-height:1.12;letter-spacing:-.02em;color:var(--text-primary);max-width:30ch"><span style="color:var(--accent);font-weight:400">Memory-Augmented LLM</span> Framework for Automated <span style="color:var(--accent);font-weight:400">RL Reward Design</span></div>
+        <div style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:min(2vw,2.8vh);line-height:1.3;letter-spacing:-.01em;color:var(--text-secondary)">記憶擴增之大型語言模型獎勵設計框架</div>
+      </div>
 
-      <!-- 右側 4 環境 demo 小框 (極簡白底發絲線) -->
-      <figure data-anim="title" style="grid-column:2/3;align-self:center;margin:0;width:min(26vw,34vh);background:#fff;border:1px solid var(--border-subtle);padding:.8vh .7vw">
-        <img src="images/grid_2x2.gif" data-image-slot="cover-demo-grid" alt="四環境 demo 預覽:CartPole / Acrobot / MountainCar / LunarLander" style="width:100%;display:block;object-fit:cover;aspect-ratio:1/1">
-        <figcaption class="t-meta" style="margin-top:.6vh;color:var(--text-helper);font-size:14px">四環境 · DQN demo</figcaption>
-      </figure>
-
-      <div data-anim="bottom" style="grid-column:1/-1;display:grid;grid-template-rows:auto auto;gap:1.8vh;border-top:1px solid var(--border-subtle);padding-top:2.2vh">
-        <div data-anim="lead" class="lead" style="max-width:64ch;color:var(--text-primary);font-weight:400;font-size:max(18px,1.5vw);opacity:1">開源 LLM（Gemma 4 31B）+ 四層記憶 + AST-aware Replay Buffer，自動為 DQN 設計獎勵函數</div>
+      <div data-anim="bottom" style="display:grid;grid-template-rows:auto auto;gap:1.6vh;border-top:1px solid var(--border-subtle);padding-top:2vh">
+        <div data-anim="lead" class="lead" style="max-width:66ch;color:var(--text-primary);font-weight:400;font-size:max(18px,1.4vw);opacity:1">開源 LLM（Gemma 4 31B）+ 四層記憶 + AST-aware Replay Buffer，自動為 DQN 設計獎勵函數</div>
         <div style="display:flex;justify-content:space-between;align-items:end;gap:2vw">
-          <div class="t-meta" style="color:var(--text-secondary)">陳盛茂 · 林仙安 · 辛語柔 · 陳冠宇 · 國立中興大學 資訊管理學研究所</div>
+          <div class="t-meta" style="color:var(--text-secondary);font-size:16px">陳盛茂 · 林仙安 · 辛語柔 · 陳冠宇 · 第五組</div>
           <div class="t-meta" style="color:var(--text-helper)">→ swipe / ← →</div>
         </div>
       </div>
@@ -1264,523 +1359,750 @@
   </div>
 </section>
 
-<!-- ===== P2 · 結論先講(鉤子)· S03 Split Statement · 左 ink / 右灰底 ===== -->
-<section class="slide split" data-layout="S03" data-animate="statement">
+<!-- ===== 02 · 大綱 Outline · S10 Split Closing 風 · 左巨字 / 右 5 章列 ===== -->
+<section class="slide split" data-layout="S10" data-animate="split-statement">
   <div class="canvas-card">
     <div class="split-half">
-      <!-- 左半 · 亮底巨字論點 -->
+      <!-- 左半 · 亮底巨字 + 極淡 ASCII -->
       <div class="half r-border" style="padding:5.6vh 3.6vw 4.4vh;justify-content:space-between;position:relative;overflow:hidden">
-        <span class="dot-mat lg" style="position:absolute;right:-4vw;top:-3vh;width:26vw;height:26vw;color:var(--border-subtle)"></span>
+        <canvas class="ascii-bg" aria-hidden="true"></canvas>
         <div class="chrome-min" style="margin-bottom:0;position:relative;z-index:1">
-          <div class="l">THE PUNCHLINE</div>
-          <div class="r">02 / 12</div>
+          <div class="l">OUTLINE · 報告大綱</div>
+          <div class="r">02 / 18</div>
         </div>
-        <div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:2.6vh">
-          <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">結論先講</div>
-          <h1 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5.6vw,9.8vh);line-height:1.04;letter-spacing:-.02em;color:var(--ink)">「記憶」<br/>不是萬靈丹<span style="color:var(--accent)">。</span></h1>
+        <div data-anim="manifesto" style="position:relative;z-index:1;display:flex;flex-direction:column;gap:2.4vh">
+          <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">五個章節 · FIVE CHAPTERS</div>
+          <h1 style="white-space:nowrap;font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5.6vw,10vh);line-height:1.05;letter-spacing:-.025em;color:var(--ink)">本報告的<span style="font-style:italic;font-weight:300;color:var(--accent)">脈絡</span></h1>
         </div>
-        <div style="position:relative;z-index:1;border-top:2px solid var(--accent);padding-top:2vh">
-          <p style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(18px,1.12vw);line-height:1.55;color:var(--text-primary);max-width:32ch">幫不幫，看「獎勵密度」。這是這條線上<strong style="font-weight:600;color:var(--accent)">第一個</strong>統計顯著的「記憶有害」結果。</p>
+        <div style="position:relative;z-index:1;border-top:1px solid var(--border-subtle);padding-top:2vh">
+          <p style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(19px,1.12vw);line-height:1.55;color:var(--text-secondary);max-width:30ch">從研究動機出發，依序走過相關研究、系統方法、實驗結果，收束於結論。</p>
         </div>
       </div>
 
-      <!-- 右半 · 灰底兩段對照解釋 -->
-      <div class="half b-grey" style="padding:5.6vh 3.6vw 4.4vh;justify-content:space-between">
-        <div class="chrome-min" style="margin-bottom:0">
-          <div class="l">密度決定一切</div>
-          <div class="r">SPARSE vs DENSE</div>
+      <!-- 右半 · 白底 5 章列 -->
+      <div class="half" style="padding:5.6vh 3.6vw 4.4vh;justify-content:center">
+        <div data-anim="rules" style="display:flex;flex-direction:column">
+          <div class="outline-row"><div class="o-no">1</div><div class="o-zh">研究動機</div><div class="o-en">Motivation</div></div>
+          <div class="outline-row"><div class="o-no">2</div><div class="o-zh">相關研究</div><div class="o-en">Related Works</div></div>
+          <div class="outline-row"><div class="o-no">3</div><div class="o-zh">系統方法</div><div class="o-en">Proposed Method</div></div>
+          <div class="outline-row"><div class="o-no">4</div><div class="o-zh">實驗結果</div><div class="o-en">Experimental Results</div></div>
+          <div class="outline-row" style="border-bottom:2px solid var(--accent)"><div class="o-no">5</div><div class="o-zh">結論</div><div class="o-en">Conclusion</div></div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:0">
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:1.8vw;align-items:baseline;padding:2.8vh 0;border-top:1px solid var(--border-subtle)">
-            <div style="font-family:var(--sans);font-weight:200;font-size:min(6.4vw,11vh);line-height:.9;color:var(--accent);font-feature-settings:'tnum'">+116<span style="font-size:.32em;font-weight:400;vertical-align:.5em;letter-spacing:0">%</span></div>
-            <div>
-              <div class="t-cat accent">稀疏獎勵 · SPARSE</div>
-              <p style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(18px,1.06vw);line-height:1.5;color:var(--text-secondary);margin-top:.6vh">記憶<strong style="font-weight:600;color:var(--text-primary)">幫忙</strong>：增益 +31% ～ +116%。</p>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:1.8vw;align-items:baseline;padding:2.8vh 0;border-top:1px solid var(--border-subtle);border-bottom:2px solid var(--accent)">
-            <div style="font-family:var(--sans);font-weight:200;font-size:min(6.4vw,11vh);line-height:.9;color:var(--text-primary);font-feature-settings:'tnum'">−38<span style="font-size:.32em;font-weight:400;vertical-align:.5em;letter-spacing:0">%</span></div>
-            <div>
-              <div class="t-cat">密集獎勵 · DENSE</div>
-              <p style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(18px,1.06vw);line-height:1.5;color:var(--text-secondary);margin-top:.6vh">記憶<strong style="font-weight:600;color:var(--text-primary)">顯著有害</strong>：−38.3%，p = 0.0317。</p>
-            </div>
-          </div>
-        </div>
-        <div class="t-meta" style="color:var(--text-secondary);text-align:right">數據直覺 · 記憶的價值看任務</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ===== P3 · 背景 EUREKA + 三延伸 · S02 Vertical Timeline + KPI ===== -->
-<section class="slide" data-layout="S02" data-animate="progression">
+<!-- ===== 03 · Ch.1 Motivation (1/2) · 獎勵設計兩難 · S08 Duo Compare ===== -->
+<section class="slide" data-layout="S08" data-animate="duo-mirror">
   <div class="canvas-card">
+    <div class="page-numeral bl">01</div>
     <div class="chrome-min">
-      <div class="l">BACKGROUND · EUREKA 與被預設的三個延伸</div>
-      <div class="r">03 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 1</span><span class="ch-nm">研究動機 Motivation</span><span class="ch-prog">(1/2)</span></div>
+      <div class="r">03 / 18</div>
     </div>
     <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
-      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">ICLR 2024 → 社群三延伸</div>
-      <h2 class="h-xl-zh" style="font-size:min(4.6vw,8vh)">三條線被當成能相加，<br/>卻沒人驗證過</h2>
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">DRL 落地瓶頸 · 獎勵函數設計</div>
+      <h2 class="h-xl-zh" style="font-size:min(4.6vw,8.4vh);color:var(--ink)">獎勵設計的<span style="font-style:italic;color:var(--accent)">兩難</span></h2>
     </div>
 
-    <div class="timeline-v" style="margin-top:1.6vh">
-      <div class="tl-node accent" style="padding:1.5vh 0">
-        <div class="dot"></div>
-        <div class="yr">2024</div>
-        <div class="multi">+52<span class="unit">%</span></div>
-        <div class="desc">EUREKA:GPT-4 寫獎勵,<strong style="font-weight:600">83% 任務勝人類</strong>、平均 +52%。</div>
+    <div class="duo-compare" style="margin-top:3.4vh;flex:0 1 auto">
+      <div class="col" style="gap:1.4vh">
+        <div class="col-tag"><span class="num">A</span> SPARSE · 稀疏獎勵</div>
+        <div class="col-ttl" style="color:var(--text-primary);font-size:min(4.2vw,7.4vh)">難學</div>
+        <p class="col-desc" style="color:var(--text-secondary);font-size:max(19px,1.1vw);max-width:none">只在「成功」那一刻給訊號，中間幾乎全是 0。探索訊號太弱，agent 常常<strong style="font-weight:600;color:var(--text-primary)">學不動</strong>。</p>
+        <ul class="col-list" style="padding-top:1.4vh">
+          <li style="font-size:max(17px,.96vw)">回饋稀少 → 樣本效率低</li>
+          <li style="font-size:max(17px,.96vw)">許多任務在預算內無法收斂</li>
+        </ul>
       </div>
-      <div class="tl-node" style="padding:1.5vh 0">
+      <div class="vrule"></div>
+      <div class="col accent" style="gap:1.4vh">
+        <div class="col-tag"><span class="num">B</span> DENSE · 人工塑形</div>
+        <div class="col-ttl" style="color:var(--accent);font-size:min(4.2vw,7.4vh)">引入偏差</div>
+        <p class="col-desc" style="color:var(--text-secondary);font-size:max(19px,1.1vw);max-width:none">手工 reward shaping 雖能加速，卻把<strong style="font-weight:600;color:var(--text-primary)">人的偏見</strong>寫進目標，且<strong style="font-weight:600;color:var(--accent)">難以擴展</strong>到新任務。</p>
+        <ul class="col-list" style="padding-top:1.4vh">
+          <li style="font-size:max(17px,.96vw)">每個環境都要重寫、調參</li>
+          <li style="font-size:max(17px,.96vw)">易塑形出「似是而非」的代理目標</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:auto;border-top:1px solid var(--border-subtle);padding-top:1.4vh;display:flex;justify-content:space-between;align-items:baseline;gap:2vw">
+      <p class="t-body" style="font-size:max(20px,1.15vw);max-width:56ch">兩端都不理想 → 能不能讓機器<strong style="font-weight:600;color:var(--accent)">自動</strong>寫出好的獎勵函數？</p>
+      <div class="t-meta accent" style="white-space:nowrap;color:var(--accent)">核心問題 · 自動化獎勵設計</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 04 · Ch.1 Motivation (2/2) · EUREKA 與研究問題 · S02 Vertical Timeline ===== -->
+<section class="slide" data-layout="S02" data-animate="progression">
+  <div class="canvas-card">
+    <div class="page-numeral bl">01</div>
+    <div class="chrome-min">
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 1</span><span class="ch-nm">研究動機 Motivation</span><span class="ch-prog">(2/2)</span></div>
+      <div class="r">04 / 18</div>
+    </div>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">EUREKA 開場 · 三個被預設的延伸</div>
+      <h2 class="h-xl-zh" style="font-size:min(4.4vw,8vh)">LLM 寫獎勵可行，<br/>但<span style="font-style:italic;color:var(--accent)">能普遍有效嗎？</span></h2>
+    </div>
+
+    <div class="timeline-v" style="margin-top:1vh">
+      <div class="tl-node accent" style="padding:1.4vh 0">
+        <div class="dot"></div>
+        <div class="yr">ICLR 2024</div>
+        <div class="multi">+52<span class="unit">%</span></div>
+        <div class="desc" style="font-size:max(18px,.98vw)">EUREKA<span class="cref">[1]</span>：用 GPT-4 寫獎勵，<strong style="font-weight:600">83% 任務勝人類</strong>、平均 +52%。</div>
+      </div>
+      <div class="tl-node" style="padding:1.4vh 0">
         <div class="dot"></div>
         <div class="yr">延伸 ①</div>
         <div class="multi">OSS</div>
-        <div class="desc">換<strong style="font-weight:600">開源模型</strong>:省成本、可重現(取代 GPT-4)。</div>
+        <div class="desc" style="font-size:max(18px,.98vw)">開源化：換開源 LLM 取代 GPT-4，省成本、可重現。</div>
       </div>
-      <div class="tl-node" style="padding:1.5vh 0">
+      <div class="tl-node" style="padding:1.4vh 0">
         <div class="dot"></div>
         <div class="yr">延伸 ②</div>
         <div class="multi">MEM</div>
-        <div class="desc">加<strong style="font-weight:600">記憶</strong>：跨輪 refine，累積過往的獎勵設計經驗。</div>
+        <div class="desc" style="font-size:max(18px,.98vw)">記憶化：跨輪累積，refine 過往的獎勵設計經驗。</div>
       </div>
-      <div class="tl-node" style="padding:1.5vh 0">
+      <div class="tl-node" style="padding:1.4vh 0">
         <div class="dot"></div>
         <div class="yr">延伸 ③</div>
         <div class="multi">BUF</div>
-        <div class="desc">處理 <strong style="font-weight:600">replay buffer</strong>:獎勵變→舊樣本失效→catastrophic forgetting。</div>
+        <div class="desc" style="font-size:max(18px,.98vw)">緩衝穩定：獎勵一變、舊樣本失效，需處理 replay buffer。</div>
       </div>
     </div>
 
-    <div class="kpi-row-4" style="margin-top:auto;margin-bottom:1.5vh">
-      <div class="kpi-cell"><div class="lbl">EUREKA 勝率</div><div class="nb">83<span class="unit">%</span></div><div class="note">任務上勝過人類設計</div></div>
-      <div class="kpi-cell"><div class="lbl">平均增益</div><div class="nb">+52<span class="unit">%</span></div><div class="note">跨任務 reward 表現</div></div>
-      <div class="kpi-cell"><div class="lbl">社群延伸</div><div class="nb">3<span class="unit">條</span></div><div class="note">被「預設」能疊加</div></div>
-      <div class="kpi-cell"><div class="lbl">研究缺口</div><div class="nb">0</div><div class="note">從未經多環境 + 統計檢定驗證</div></div>
+    <div style="margin-top:auto;background:var(--grey-1);border-top:2px solid var(--accent);padding:2vh 1.8vw;display:flex;align-items:center;gap:1.8vw">
+      <div class="t-cat accent" style="color:var(--accent);white-space:nowrap">研究問題 RQ</div>
+      <p class="t-body" style="font-size:max(20px,1.18vw)">三者<strong style="font-weight:600;color:var(--accent)">同時</strong>解決後，LLM 自動獎勵設計能否<strong style="font-weight:600;color:var(--text-primary)">普遍有效</strong>？</p>
     </div>
+    <div class="cite-line" style="margin-top:1.4vh"><span class="ref"><b>[1]</b> Ma et al., EUREKA, ICLR 2024</span></div>
   </div>
 </section>
 
-<!-- ===== P4 · 方法 三模組閉環 · S14 Loop Form · 左 4 步 / 右環圖 (亮底) ===== -->
+<!-- ===== 05 · Ch.2 Related Works (1/2) · LLM 撰寫獎勵比較表 · S07 ===== -->
+<section class="slide" data-layout="S07" data-animate="grid-reveal">
+  <div class="canvas-card">
+    <div class="page-numeral bl">02</div>
+    <div class="chrome-min">
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 2</span><span class="ch-nm">相關研究 Related Works</span><span class="ch-prog">(1/2)</span></div>
+      <div class="r">05 / 18</div>
+    </div>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">用 LLM 撰寫獎勵 · LLM-AS-REWARD-AUTHOR</div>
+      <h2 class="h-xl-zh" style="font-size:min(4.4vw,8vh)">三條既有路線的<span style="font-style:italic;color:var(--accent)">分工</span></h2>
+    </div>
+
+    <div data-anim="up" class="cmp-table" style="margin-top:3vh;grid-template-columns:1.4fr 1fr 1fr 1.2fr">
+      <div class="cmp-head accent">方法</div>
+      <div class="cmp-head">核心模型</div>
+      <div class="cmp-head">跨輪記憶</div>
+      <div class="cmp-head">Buffer 處理</div>
+
+      <div class="cmp-cell"><span class="cmp-row-h accent">EUREKA<span class="cref">[1]</span></span><span class="cmp-sub">ICLR 2024</span></div>
+      <div class="cmp-cell"><span class="cmp-val"><strong>GPT-4</strong>（閉源）</span></div>
+      <div class="cmp-cell"><span class="cmp-val">演化式 in-context</span></div>
+      <div class="cmp-cell"><span class="cmp-val">未處理</span></div>
+
+      <div class="cmp-cell"><span class="cmp-row-h">CARD<span class="cref">[2]</span></span><span class="cmp-sub">2024</span></div>
+      <div class="cmp-cell"><span class="cmp-val">LLM coder + critic</span></div>
+      <div class="cmp-cell"><span class="cmp-val">回饋迴圈</span></div>
+      <div class="cmp-cell"><span class="cmp-val">未聚焦</span></div>
+
+      <div class="cmp-cell" style="border-bottom:2px solid var(--accent)"><span class="cmp-row-h">LEARN-Opt<span class="cref">[3]</span></span><span class="cmp-sub">2025</span></div>
+      <div class="cmp-cell" style="border-bottom:2px solid var(--accent)"><span class="cmp-val">開源 LLM</span></div>
+      <div class="cmp-cell" style="border-bottom:2px solid var(--accent)"><span class="cmp-val">無顯式記憶</span></div>
+      <div class="cmp-cell" style="border-bottom:2px solid var(--accent)"><span class="cmp-val">未聚焦</span></div>
+    </div>
+
+    <div style="margin-top:auto;border-top:1px solid var(--border-subtle);padding-top:1.4vh;display:flex;justify-content:space-between;align-items:baseline;gap:2vw">
+      <p class="t-body" style="font-size:max(19px,1.12vw);max-width:none">既有路線各自處理「模型／記憶」，但<strong style="font-weight:600;color:var(--accent)">沒有一條</strong>正面處理「獎勵改變後的 replay buffer」。</p>
+      <div class="t-meta accent" style="white-space:nowrap;color:var(--accent)">缺口 · buffer-side</div>
+    </div>
+    <div class="cite-line" style="margin-top:1vh"><span class="ref"><b>[1]</b> EUREKA, ICLR 2024</span><span class="ref"><b>[2]</b> Sun et al., CARD, 2024</span><span class="ref"><b>[3]</b> Cardenoso &amp; Caarls, LEARN-Opt, 2025</span></div>
+  </div>
+</section>
+
+<!-- ===== 06 · Ch.2 Related Works (2/2) · 記憶智能體 + 非穩態 buffer + 研究缺口 · S13 ===== -->
+<section class="slide" data-layout="S13" data-animate="three-forces">
+  <div class="canvas-card">
+    <div class="page-numeral bl">02</div>
+    <div class="chrome-min">
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 2</span><span class="ch-nm">相關研究 Related Works</span><span class="ch-prog">(2/2)</span></div>
+      <div class="r">06 / 18</div>
+    </div>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">記憶智能體 · 非穩態 buffer · 研究缺口</div>
+      <h2 class="h-xl-zh" style="font-size:min(4vw,7vh)">三個領域交會，<span style="font-style:italic;color:var(--accent)">尚未整合驗證</span></h2>
+    </div>
+
+    <div data-anim="up" style="flex:1;min-height:0;display:grid;grid-template-columns:5fr 7fr;gap:3vw;align-items:stretch;margin-top:1.6vh">
+      <!-- 左 grey hero: 研究缺口 -->
+      <div style="background:var(--grey-1);border:1px solid var(--border-subtle);color:var(--ink);padding:2.2vh 1.8vw;display:flex;flex-direction:column;min-height:0;overflow:hidden">
+        <div class="t-cat" style="color:var(--text-helper)">RESEARCH GAP</div>
+        <div style="font-family:var(--sans);font-weight:200;font-size:min(5.2vw,8.2vh);line-height:.9;letter-spacing:-.03em;color:var(--accent);margin-top:.8vh">3 × 0</div>
+        <p style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(17px,1vw);line-height:1.4;color:var(--text-secondary);margin-top:.9vh">三條線交會處，<strong style="font-weight:600;color:var(--ink)">零</strong>整合驗證。本研究從 <strong style="font-weight:600;color:var(--accent)">buffer-side（AST）</strong>切入，<strong style="font-weight:600;color:var(--ink)">正交互補</strong>。</p>
+        <div style="margin-top:auto;display:flex;flex-direction:column;gap:.8vh;border-top:1px solid var(--border-subtle);padding-top:1.2vh">
+          <div style="display:grid;grid-template-columns:1.4em 1fr;gap:.6vw;align-items:baseline"><span style="font-family:var(--mono);font-weight:600;color:var(--accent);font-size:max(15px,.9vw)">①</span><p class="t-body-sm" style="font-size:max(15px,.9vw);line-height:1.35">LLM 寫獎勵：缺跨輪記憶、不處理 buffer</p></div>
+          <div style="display:grid;grid-template-columns:1.4em 1fr;gap:.6vw;align-items:baseline"><span style="font-family:var(--mono);font-weight:600;color:var(--accent);font-size:max(15px,.9vw)">②</span><p class="t-body-sm" style="font-size:max(15px,.9vw);line-height:1.35">記憶機制：DRL 多任務缺實證</p></div>
+          <div style="display:grid;grid-template-columns:1.4em 1fr;gap:.6vw;align-items:baseline"><span style="font-family:var(--mono);font-weight:600;color:var(--accent);font-size:max(15px,.9vw)">③</span><p class="t-body-sm" style="font-size:max(15px,.9vw);line-height:1.35">buffer 端遺忘：未被處理</p></div>
+        </div>
+      </div>
+      <!-- 右 3 卡: 記憶智能體 / 非穩態 buffer / shaping 理論 -->
+      <div style="display:grid;grid-template-rows:repeat(3,1fr);gap:1.6vh">
+        <div class="card-fill" style="padding:1.8vh 1.6vw;display:grid;grid-template-columns:auto 1fr;gap:1.6vw;align-items:center">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3vw,5vh);color:var(--accent);line-height:.9">①</div>
+          <div><div class="t-h-prod" style="font-size:max(20px,1.4vw)">記憶智能體 Memory Agents</div><p class="t-body-sm" style="font-size:max(17px,.95vw);margin-top:.4vh">Nous Hermes 四層記憶<span class="cref">[4]</span>；OSWorld <strong style="font-weight:600;color:var(--text-primary)">12% → 66.3%</strong><span class="cref">[5]</span>。</p></div>
+        </div>
+        <div class="card-fill" style="padding:1.8vh 1.6vw;display:grid;grid-template-columns:auto 1fr;gap:1.6vw;align-items:center">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3vw,5vh);color:var(--accent);line-height:.9">②</div>
+          <div><div class="t-h-prod" style="font-size:max(20px,1.4vw)">非穩態 Replay Buffer</div><p class="t-body-sm" style="font-size:max(17px,.95vw);margin-top:.4vh">GB-DQN 走 value-side<span class="cref">[6]</span>；CHAIN 處理 churn<span class="cref">[7]</span>。</p></div>
+        </div>
+        <div class="card-fill" style="padding:1.8vh 1.6vw;display:grid;grid-template-columns:auto 1fr;gap:1.6vw;align-items:center">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3vw,5vh);color:var(--accent);line-height:.9">③</div>
+          <div><div class="t-h-prod" style="font-size:max(20px,1.4vw)">Shaping 理論基礎</div><p class="t-body-sm" style="font-size:max(17px,.95vw);margin-top:.4vh">Ng 1999 potential-based shaping，保證策略不變<span class="cref">[8]</span>。</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="cite-line" style="margin-top:1.4vh;font-size:13px"><span class="ref"><b>[4]</b> Nous Hermes, 2026</span><span class="ref"><b>[5]</b> Stanford HAI, 2026</span><span class="ref"><b>[6]</b> GB-DQN, 2025</span><span class="ref"><b>[7]</b> CHAIN, NeurIPS 2024</span><span class="ref"><b>[8]</b> Ng et al., ICML 1999</span></div>
+  </div>
+</section>
+
+<!-- ===== 07 · Ch.3 Proposed Method (1/3) · 系統總覽閉環 · S14 Loop Form ===== -->
 <section class="slide" data-layout="S14" data-animate="loop-form">
   <div class="canvas-card">
+    <div class="page-numeral bl">03</div>
     <div class="chrome-min">
-      <div class="l">METHOD · Hermes-DQN 三模組閉環</div>
-      <div class="r">04 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 3</span><span class="ch-nm">系統方法 Proposed Method</span><span class="ch-prog">(1/3)</span></div>
+      <div class="r">07 / 18</div>
     </div>
-    <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
-      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">CLOSED LOOP · 5 ROUNDS</div>
-      <h2 class="h-xl-zh" style="font-size:min(4.6vw,8vh);color:var(--ink)">三個模組，<br/>共用同一把公平的尺</h2>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:1vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">系統總覽 · 三模組閉環 · 跑 5 輪</div>
+      <h2 class="h-xl-zh" style="font-size:min(3.8vw,6.6vh);color:var(--ink)">三個模組，共用同一把公平的尺</h2>
     </div>
 
-    <div data-anim="up" style="flex:1;display:grid;grid-template-columns:7fr 5fr;gap:4vw;align-items:center;margin-top:2vh">
-      <!-- 左:4 步列表 -->
-      <div style="display:flex;flex-direction:column;gap:0">
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.2vh 0;border-top:1px solid var(--border-subtle)">
-          <div style="font-family:var(--mono);font-weight:500;font-size:max(15px,1vw);color:var(--accent);padding-top:.4vh">01</div>
-          <div>
-            <div class="t-h-prod" style="color:var(--text-primary)">Gemma 4 31B＝寫獎勵的人</div>
-            <p class="t-body-sm" style="margin-top:.6vh">開源、本地跑，直接取代 GPT-4 寫獎勵原始碼。</p>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.2vh 0;border-top:1px solid var(--border-subtle)">
-          <div style="font-family:var(--mono);font-weight:500;font-size:max(15px,1vw);color:var(--accent);padding-top:.4vh">02</div>
-          <div>
-            <div class="t-h-prod" style="color:var(--text-primary)">四層記憶 · Procedural / Semantic / Episodic / Working</div>
-            <p class="t-body-sm" style="margin-top:.6vh">每輪存獎勵碼＋fitness；下輪用 fitness 挑 top-k 回饋進 prompt。</p>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.2vh 0;border-top:1px solid var(--border-subtle)">
-          <div style="font-family:var(--mono);font-weight:500;font-size:max(15px,1vw);color:var(--accent);padding-top:.4vh">03</div>
-          <div>
-            <div class="t-h-prod" style="color:var(--text-primary)">AST-aware buffer manager</div>
-            <p class="t-body-sm" style="margin-top:.6vh">比對新舊獎勵碼，分四級改動 → 決定保留 / 部分 / 衰減 / 清空 replay buffer。</p>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.2vh 0;border-top:1px solid var(--border-subtle);border-bottom:2px solid var(--accent)">
-          <div style="font-family:var(--mono);font-weight:500;font-size:max(15px,1vw);color:var(--accent);padding-top:.4vh">04</div>
-          <div>
-            <div class="t-h-prod" style="color:var(--text-primary)">公平評估 · env-native reward ＋ 100 顆沒見過的 seed</div>
-            <p class="t-body-sm" style="margin-top:.6vh">唯一公平的跨條件尺——閉環跑 5 輪。</p>
-          </div>
-        </div>
+    <figure data-anim="up" style="margin:0;flex:1;min-height:0;display:flex;flex-direction:column;margin-top:1.6vh;background:#fff;border:1px solid var(--border-subtle);padding:2vh 1.8vw">
+      <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center">
+        <img src="images/fig1_architecture.png" data-image-slot="s14-arch-2x1" alt="系統架構:Gemma 4 31B reward author → 四層記憶 ＋ AST-aware buffer → DQN 訓練 → 公平評估 → 寫回記憶,閉環 5 輪"
+             style="max-width:100%;max-height:100%;object-fit:contain;display:block">
       </div>
-
-      <!-- 右:SVG 環圖(僅幾何,標籤用 HTML) -->
-      <div style="position:relative;display:flex;align-items:center;justify-content:center;height:100%">
-        <svg viewBox="0 0 300 300" style="width:100%;max-width:30vh;height:auto;overflow:visible">
-          <circle cx="150" cy="150" r="118" fill="none" stroke="var(--border-strong)" stroke-width="1.4"/>
-          <circle cx="150" cy="32"  r="9" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
-          <circle cx="268" cy="150" r="9" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
-          <circle cx="150" cy="268" r="9" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
-          <circle cx="32"  cy="150" r="9" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
-          <path d="M150 150 L150 41" stroke="var(--border-strong)" stroke-width="1.2" marker-end="url(#ar)"/>
-          <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M1 1 L6 4 L1 7" fill="none" stroke="var(--accent)" stroke-width="1.4"/></marker></defs>
-        </svg>
-        <div style="position:absolute;inset:0;pointer-events:none">
-          <div class="t-meta accent" style="position:absolute;left:50%;top:1%;transform:translateX(-50%);color:var(--accent);text-align:center">AUTHOR</div>
-          <div class="t-meta accent" style="position:absolute;right:-2%;top:50%;transform:translateY(-50%);color:var(--accent)">MEMORY</div>
-          <div class="t-meta accent" style="position:absolute;left:50%;bottom:1%;transform:translateX(-50%);color:var(--accent);text-align:center">BUFFER</div>
-          <div class="t-meta accent" style="position:absolute;left:-2%;top:50%;transform:translateY(-50%);color:var(--accent)">EVAL</div>
-          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center">
-            <div style="font-family:var(--sans);font-weight:200;font-size:min(3.2vw,5.6vh);color:var(--ink);line-height:1">×5</div>
-            <div class="t-meta" style="color:var(--text-helper);margin-top:.4vh">ROUNDS</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <figcaption class="t-body-sm" style="margin-top:1.2vh;color:var(--text-primary);font-weight:400;font-size:max(17px,.98vw);border-top:1px solid var(--border-subtle);padding-top:1vh">
+        五步閉環：<strong style="font-weight:600">①</strong> Gemma 4 31B 寫獎勵<span class="cref">[1]</span> → <strong style="font-weight:600">②</strong> 四層記憶餵回饋、AST buffer 決定樣本去留 → <strong style="font-weight:600">③</strong> DQN 訓練 → <strong style="font-weight:600">④</strong> 100 顆未見 seed 公平評估 → <strong style="font-weight:600;color:var(--accent)">⑤</strong> 結果寫回記憶，循環 5 輪。
+      </figcaption>
+    </figure>
+    <div class="cite-line" style="margin-top:1vh"><span class="ref"><b>[1]</b> Ma et al., EUREKA, ICLR 2024（reward-as-code 範式）</span></div>
   </div>
 </section>
 
-<!-- ===== P5 · 實驗設計 · S04 Six Cells · 6 條件 ===== -->
+<!-- ===== 08 · Ch.3 Proposed Method (2/3) · 記憶 + 獎勵生成 · S05 Three Layers ===== -->
+<section class="slide" data-layout="S05" data-animate="stack-build">
+  <div class="canvas-card">
+    <div class="page-numeral bl">03</div>
+    <div class="chrome-min">
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 3</span><span class="ch-nm">系統方法 Proposed Method</span><span class="ch-prog">(2/3)</span></div>
+      <div class="r">08 / 18</div>
+    </div>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">四層記憶 · 開源 reward author</div>
+      <h2 class="h-xl-zh" style="font-size:min(4.4vw,8vh)">記憶把<span style="font-style:italic;color:var(--accent)">經驗</span>餵回下一輪</h2>
+    </div>
+
+    <div class="stack-row" data-anim="up" style="margin-top:3.4vh">
+      <div class="stack-block b-grey">
+        <div class="layer-nb">LAYER · 01 / 02</div>
+        <div class="layer-ttl" style="font-size:max(20px,2vw)">Procedural<br/>Semantic</div>
+        <div class="layer-desc" style="font-size:max(17px,.96vw)">怎麼寫獎勵的「程序知識」＋ 任務語意先驗，跨輪穩定保留。</div>
+        <div class="layer-tag">長期 · 慢變</div>
+      </div>
+      <div class="stack-block b-accent">
+        <div class="layer-nb" style="color:rgba(255,255,255,.7)">LAYER · 03</div>
+        <div class="layer-ttl" style="font-size:max(20px,2vw)">Episodic</div>
+        <div class="layer-desc" style="font-size:max(17px,.96vw)">每輪存下 <strong style="font-weight:600;color:#fff">reward 原始碼 ＋ fitness</strong>；下輪用 fitness 取 <strong style="font-weight:600;color:#fff">top-k</strong> 回饋進 prompt。</div>
+        <div class="layer-tag">本研究核心迴路</div>
+      </div>
+      <div class="stack-block b-grey">
+        <div class="layer-nb">LAYER · 04</div>
+        <div class="layer-ttl" style="font-size:max(20px,2vw)">Working</div>
+        <div class="layer-desc" style="font-size:max(17px,.96vw)">當輪 scratchpad：彙整檢索到的記憶，組成本輪 reward 生成的上下文。</div>
+        <div class="layer-tag">短期 · 當輪</div>
+      </div>
+    </div>
+
+    <div style="margin-top:auto;padding-top:1.6vh;display:flex;justify-content:space-between;align-items:baseline;gap:2vw">
+      <p class="t-body" style="font-size:max(20px,1.15vw);max-width:62ch"><strong style="font-weight:600;color:var(--accent)">Gemma 4 31B</strong>（開源）取代 GPT-4 擔任 reward author，使整條管線可本地、可重現。</p>
+      <div class="t-meta accent" style="white-space:nowrap;color:var(--accent)">記憶化 ＋ 開源化</div>
+    </div>
+    <div class="cite-line" style="margin-top:1.2vh"><span class="ref"><b>[4]</b> Nous Research, Hermes Agent（四層記憶啟發）, 2026</span></div>
+  </div>
+</section>
+
+<!-- ===== 09 · Ch.3 Proposed Method (3/3) · AST 感知 buffer · S11 Horizontal Timeline ===== -->
+<section class="slide" data-layout="S11" data-animate="timeline-walk">
+  <div class="canvas-card">
+    <div class="page-numeral bl">03</div>
+    <div class="chrome-min">
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 3</span><span class="ch-nm">系統方法 Proposed Method</span><span class="ch-prog">(3/3)</span></div>
+      <div class="r">09 / 18</div>
+    </div>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:1vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">AST-aware buffer manager · DIFF 新舊 reward 的抽象語法樹</div>
+      <h2 class="h-xl-zh" style="font-size:min(4vw,7vh)">用<span style="font-style:italic;color:var(--accent)">程式碼差異</span>決定樣本去留</h2>
+    </div>
+
+    <!-- STEP A: 4 個 AST 差異等級 (timeline-h, 全部 up label, 固定高度避免壓字) -->
+    <div class="timeline-h" data-anim="walk" style="margin-top:7vh;flex:0 0 auto;height:11vh">
+      <div class="tl-row" style="grid-template-columns:repeat(4,1fr)">
+        <div class="th-node up accent"><div class="dot"></div><div class="label"><div class="yr">改動 01</div><div class="name">IDENTICAL</div><div class="desc">完全相同</div></div></div>
+        <div class="th-node up"><div class="dot"></div><div class="label"><div class="yr">改動 02</div><div class="name">SIGNATURE_ONLY</div><div class="desc">僅介面變</div></div></div>
+        <div class="th-node up"><div class="dot"></div><div class="label"><div class="yr">改動 03</div><div class="name">STRUCTURAL</div><div class="desc">結構性改寫</div></div></div>
+        <div class="th-node up accent"><div class="dot"></div><div class="label"><div class="yr">改動 04</div><div class="name">TOTAL_REWRITE</div><div class="desc">整段重寫</div></div></div>
+      </div>
+    </div>
+
+    <div style="margin-top:2vh;margin-bottom:1.4vh"><div class="t-cat accent" style="color:var(--accent)">↓ 對應的 buffer 動作 · BUFFER ACTION</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.4vw">
+      <div class="card-fill" style="padding:2vh 1.2vw"><div class="t-meta" style="color:var(--text-helper)">→ IDENTICAL</div><div style="font-family:var(--sans);font-weight:300;font-size:max(22px,1.9vw);color:var(--text-primary);margin-top:.8vh">KEEP</div><p class="t-body-sm" style="font-size:max(17px,.92vw);margin-top:.5vh">全保留</p></div>
+      <div class="card-fill" style="padding:2vh 1.2vw"><div class="t-meta" style="color:var(--text-helper)">→ SIGNATURE</div><div style="font-family:var(--sans);font-weight:300;font-size:max(22px,1.9vw);color:var(--text-primary);margin-top:.8vh">PARTIAL_KEEP</div><p class="t-body-sm" style="font-size:max(17px,.92vw);margin-top:.5vh">部分保留</p></div>
+      <div class="card-fill" style="padding:2vh 1.2vw"><div class="t-meta" style="color:var(--text-helper)">→ STRUCTURAL</div><div style="font-family:var(--sans);font-weight:300;font-size:max(22px,1.9vw);color:var(--text-primary);margin-top:.8vh">DECAY</div><p class="t-body-sm" style="font-size:max(17px,.92vw);margin-top:.5vh">衰減舊樣本</p></div>
+      <div style="background:var(--accent);color:var(--accent-on);padding:2vh 1.2vw"><div class="t-meta" style="color:rgba(255,255,255,.8)">→ TOTAL_REWRITE</div><div style="font-family:var(--sans);font-weight:300;font-size:max(22px,1.9vw);color:#fff;margin-top:.8vh">CLEAR</div><p class="t-body-sm" style="font-size:max(17px,.92vw);margin-top:.5vh;color:rgba(255,255,255,.92)">清空重來</p></div>
+    </div>
+    <div class="cite-line" style="margin-top:auto;padding-top:1.2vh"><span class="ref"><b>[7]</b> Tang &amp; Berseth, CHAIN, NeurIPS 2024（非穩態 buffer 動機）</span></div>
+  </div>
+</section>
+
+<!-- ===== 10 · Ch.4 Experimental Results (1/6) · 實驗設計 · S04 Six Cells + 環境表 ===== -->
 <section class="slide" data-layout="S04" data-animate="grid-reveal">
   <div class="canvas-card">
+    <div class="page-numeral bl">04</div>
     <div class="chrome-min">
-      <div class="l">EXPERIMENT · 設計與條件</div>
-      <div class="r">05 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 4</span><span class="ch-nm">實驗結果 Experimental Results</span><span class="ch-prog">(1/6)</span></div>
+      <div class="r">10 / 18</div>
     </div>
-    <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
-      <div class="t-meta accent" style="letter-spacing:.22em">4 環境 × 6 條件 × 5 SEED = 120 RUNS（＋ PART 2 80 RUNS）</div>
-      <h2 class="h-xl-zh" style="font-size:min(4.4vw,7.6vh)">六個條件，<br/>只比『有沒有記憶』</h2>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:.8vh">
+      <div class="t-meta accent" style="letter-spacing:.2em">4 環境 × 6 條件 × 5 SEED = 120 RUNS（＋ PART 2 80）</div>
+      <h2 class="h-xl-zh" style="font-size:min(3.6vw,6.4vh)">六個條件，<span style="font-style:italic;color:var(--accent)">只比『有沒有記憶』</span></h2>
     </div>
 
-    <div class="sub-grid-3-2">
-      <div class="sub-card">
+    <!-- 環境表: 4 環境跨獎勵密度 (單行緊湊) -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.2vw;margin-top:1.8vh">
+      <div style="border-top:2px solid var(--accent);padding-top:.8vh"><span class="t-meta accent" style="color:var(--accent)">LunarLander</span> <span class="t-body-sm" style="font-size:max(16px,.9vw)">密集 · obs8/act4</span></div>
+      <div style="border-top:2px solid var(--ink);padding-top:.8vh"><span class="t-meta">CartPole</span> <span class="t-body-sm" style="font-size:max(16px,.9vw)">稀疏 · +1/step</span></div>
+      <div style="border-top:2px solid var(--ink);padding-top:.8vh"><span class="t-meta">MountainCar</span> <span class="t-body-sm" style="font-size:max(16px,.9vw)">稀疏 · −1/step</span></div>
+      <div style="border-top:2px solid var(--ink);padding-top:.8vh"><span class="t-meta">Acrobot</span> <span class="t-body-sm" style="font-size:max(16px,.9vw)">稀疏 · −1/step</span></div>
+    </div>
+
+    <div class="sub-grid-3-2" style="margin-top:1.8vh;gap:1.4vh 1.4vw">
+      <div class="sub-card" style="padding:1.8vh 1.4vw 1.6vh">
         <span class="nb-corner">01</span>
-        <i data-lucide="circle-dashed" class="lucide"></i>
-        <div class="ttl">B0 · env-native</div>
-        <p class="desc">環境原生獎勵當基準。CartPole／MountainCar 成功率 0%。</p>
+        <div class="ttl" style="font-size:max(19px,1.5vw)">B0 · env-native</div>
+        <p class="desc" style="font-size:max(17px,.96vw)">環境原生獎勵當基準。CartPole／MountainCar 成功率 0%。</p>
       </div>
-      <div class="sub-card">
+      <div class="sub-card" style="padding:1.8vh 1.4vw 1.6vh">
         <span class="nb-corner">02</span>
-        <i data-lucide="hammer" class="lucide"></i>
-        <div class="ttl">B1 · handcrafted</div>
-        <p class="desc">作者手寫的獎勵 placeholder，不是人類專家 baseline。</p>
+        <div class="ttl" style="font-size:max(19px,1.5vw)">B1 · handcrafted</div>
+        <p class="desc" style="font-size:max(17px,.96vw)">作者手寫的獎勵 placeholder，不是人類專家 baseline。</p>
       </div>
-      <div class="sub-card">
+      <div class="sub-card" style="padding:1.8vh 1.4vw 1.6vh">
         <span class="nb-corner">03</span>
-        <i data-lucide="zap" class="lucide"></i>
-        <div class="ttl">B2 · gemma-oneshot</div>
-        <p class="desc">Gemma 單輪生獎勵，沒記憶、沒 buffer 管理。</p>
+        <div class="ttl" style="font-size:max(19px,1.5vw)">B2 · gemma-oneshot</div>
+        <p class="desc" style="font-size:max(17px,.96vw)">Gemma 單輪生獎勵，沒記憶、沒 buffer 管理。</p>
       </div>
-      <div class="sub-card accent">
+      <div class="sub-card accent" style="padding:1.8vh 1.4vw 1.6vh">
         <span class="nb-corner">04</span>
-        <i data-lucide="brain-circuit" class="lucide"></i>
-        <div class="ttl">B3 · hermes-full</div>
-        <p class="desc">完整系統：四層記憶＋AST buffer，閉環 5 輪。</p>
+        <div class="ttl" style="font-size:max(19px,1.5vw)">B3 · hermes-full</div>
+        <p class="desc" style="font-size:max(17px,.96vw)">完整系統：四層記憶＋AST buffer，閉環 5 輪。</p>
       </div>
-      <div class="sub-card">
+      <div class="sub-card" style="padding:1.8vh 1.4vw 1.6vh">
         <span class="nb-corner">05</span>
-        <i data-lucide="brain" class="lucide"></i>
-        <div class="ttl">B3 · no-memory</div>
-        <p class="desc">拿掉記憶的消融組——專問「記憶本身」有沒有用。</p>
+        <div class="ttl" style="font-size:max(19px,1.5vw)">B3 · no-memory</div>
+        <p class="desc" style="font-size:max(17px,.96vw)">拿掉記憶的消融組——專問「記憶本身」有沒有用。</p>
       </div>
-      <div class="sub-card">
+      <div class="sub-card" style="padding:1.8vh 1.4vw 1.6vh">
         <span class="nb-corner">06</span>
-        <i data-lucide="layers" class="lucide"></i>
-        <div class="ttl">B3 · no-AST</div>
-        <p class="desc">拿掉 AST buffer 管理的消融組。統計：Mann-Whitney U＋bootstrap 95% CI，n=5。</p>
+        <div class="ttl" style="font-size:max(19px,1.5vw)">B3 · no-AST</div>
+        <p class="desc" style="font-size:max(17px,.96vw)">拿掉 AST buffer 的消融組。<strong style="font-weight:600;color:var(--text-primary)">兩組關鍵對照</strong>：B3-full vs B0、vs B3-no-memory。</p>
       </div>
+    </div>
+    <div style="margin-top:1.4vh;display:flex;justify-content:flex-end">
+      <div class="t-meta accent" style="color:var(--accent)">統計 · Mann-Whitney U ＋ bootstrap 95% CI · n=5</div>
     </div>
   </div>
 </section>
 
-<!-- ===== P6 · 結果一 稀疏受益、密集反轉 · S07 H-Bar Chart · 原生長條 ===== -->
+<!-- ===== 11 · Ch.4 (2/6) · 結果總表 六條件 × 四環境 · S07 cmp-table ===== -->
+<section class="slide" id="s-restable" data-layout="S07" data-animate="grid-reveal">
+  <style>
+    #s-restable .cmp-head{padding:.9vh 1.4vw}
+    #s-restable .cmp-cell{padding:1.02vh 1.4vw}
+  </style>
+  <div class="canvas-card">
+    <div class="page-numeral bl">04</div>
+    <div class="chrome-min tight">
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 4</span><span class="ch-nm">實驗結果 EXPERIMENTAL RESULTS</span><span class="ch-prog">(2/6)</span></div>
+      <div class="r">11 / 18</div>
+    </div>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:.8vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">env-native mean · n=5</div>
+      <h2 class="h-xl-zh" style="font-size:min(3.4vw,5.6vh);color:var(--ink)">六條件 × 四環境<span style="font-weight:300">　</span><span style="font-style:italic;color:var(--accent)">結果總表</span></h2>
+    </div>
+
+    <div data-anim="up" class="cmp-table" style="margin-top:1.4vh;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;font-feature-settings:'tnum'">
+      <!-- 表頭 -->
+      <div class="cmp-head accent">條件</div>
+      <div class="cmp-head" style="justify-content:flex-end;text-align:right">LunarLander<br/><span style="font-weight:500;letter-spacing:.04em;text-transform:none;opacity:.8">密集</span></div>
+      <div class="cmp-head" style="justify-content:flex-end;text-align:right">CartPole<br/><span style="font-weight:500;letter-spacing:.04em;text-transform:none;opacity:.8">稀疏</span></div>
+      <div class="cmp-head" style="justify-content:flex-end;text-align:right">MountainCar<br/><span style="font-weight:500;letter-spacing:.04em;text-transform:none;opacity:.8">稀疏</span></div>
+      <div class="cmp-head" style="justify-content:flex-end;text-align:right">Acrobot<br/><span style="font-weight:500;letter-spacing:.04em;text-transform:none;opacity:.8">稀疏</span></div>
+
+      <!-- B0 -->
+      <div class="cmp-cell"><span class="cmp-row-h" style="font-size:max(18px,1.15vw)">B0-env-native</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">173.22</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">154.80</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−193.44</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−194.96</span></div>
+
+      <!-- B1 -->
+      <div class="cmp-cell"><span class="cmp-row-h" style="font-size:max(18px,1.15vw)">B1-handcrafted</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">77.77</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">160.19</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−140.40</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−185.28</span></div>
+
+      <!-- B2 -->
+      <div class="cmp-cell"><span class="cmp-row-h" style="font-size:max(18px,1.15vw)">B2-gemma-oneshot</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">152.65</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">187.64</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−153.09</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−83.21</span></div>
+
+      <!-- B3-hermes-full · 高亮行 (IKB accent text + hairline accent 底線) -->
+      <div class="cmp-cell" style="border-bottom-color:var(--accent);border-bottom-width:2px"><span class="cmp-row-h accent" style="font-size:max(18px,1.15vw);font-weight:700">B3-hermes-full</span></div>
+      <div class="cmp-cell" style="align-items:flex-end;border-bottom-color:var(--accent);border-bottom-width:2px"><span class="cmp-val accent" style="font-size:max(18px,1.1vw);color:var(--accent)"><strong style="font-weight:700;color:var(--accent)">153.56</strong></span></div>
+      <div class="cmp-cell" style="align-items:flex-end;border-bottom-color:var(--accent);border-bottom-width:2px"><span class="cmp-val accent" style="font-size:max(20px,1.3vw);color:var(--accent)"><strong style="font-weight:800;color:var(--accent)">334.44</strong></span></div>
+      <div class="cmp-cell" style="align-items:flex-end;border-bottom-color:var(--accent);border-bottom-width:2px"><span class="cmp-val accent" style="font-size:max(18px,1.1vw);color:var(--accent)"><strong style="font-weight:700;color:var(--accent)">−132.53</strong></span></div>
+      <div class="cmp-cell" style="align-items:flex-end;border-bottom-color:var(--accent);border-bottom-width:2px"><span class="cmp-val accent" style="font-size:max(18px,1.1vw);color:var(--accent)"><strong style="font-weight:700;color:var(--accent)">−82.92</strong></span></div>
+
+      <!-- B3-no-memory -->
+      <div class="cmp-cell"><span class="cmp-row-h" style="font-size:max(18px,1.15vw)">B3-no-memory</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(20px,1.3vw)"><strong style="font-weight:700;color:var(--text-primary)">248.77</strong></span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">243.21</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−168.55</span></div>
+      <div class="cmp-cell" style="align-items:flex-end"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−83.23</span></div>
+
+      <!-- B3-no-AST -->
+      <div class="cmp-cell" style="border-bottom:0"><span class="cmp-row-h" style="font-size:max(18px,1.15vw)">B3-no-AST</span></div>
+      <div class="cmp-cell" style="align-items:flex-end;border-bottom:0"><span class="cmp-val" style="font-size:max(18px,1.1vw)">95.42</span></div>
+      <div class="cmp-cell" style="align-items:flex-end;border-bottom:0"><span class="cmp-val" style="font-size:max(18px,1.1vw)">220.81</span></div>
+      <div class="cmp-cell" style="align-items:flex-end;border-bottom:0"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−134.59</span></div>
+      <div class="cmp-cell" style="align-items:flex-end;border-bottom:0"><span class="cmp-val" style="font-size:max(18px,1.1vw)">−83.58</span></div>
+    </div>
+
+    <div style="margin-top:auto;border-top:1px solid var(--border-subtle);padding-top:1.2vh;display:flex;justify-content:space-between;align-items:baseline;gap:2vw">
+      <p class="t-body" style="font-size:max(17px,1.04vw);max-width:64ch">稀疏環境 <strong style="font-weight:600;color:var(--accent)">B3-hermes-full</strong> 全面領先 B0；密集 LunarLander 反而被 <strong style="font-weight:600;color:var(--text-primary)">no-memory</strong> 超越。</p>
+      <div class="t-meta accent" style="white-space:nowrap;color:var(--accent)">density-dependent</div>
+    </div>
+    <div class="cite-line" style="margin-top:.9vh"><span class="ref"><b>[1]</b> env-native eval · 100 unseen seeds</span></div>
+  </div>
+</section>
+
+<!-- ===== 12 · Ch.4 (3/6) · 結果一 稀疏受益、密集反轉 · S07 ledger-bar ===== -->
 <section class="slide" data-layout="S07" data-animate="stacked-ledger">
   <div class="canvas-card">
+    <div class="page-numeral bl">04</div>
     <div class="chrome-min">
-      <div class="l">RESULT 01 · B3-full vs B0</div>
-      <div class="r">06 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 4</span><span class="ch-nm">實驗結果 · 結果一 B3-full vs B0</span><span class="ch-prog">(3/6)</span></div>
+      <div class="r">12 / 18</div>
     </div>
-    <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:.8vh">
       <div class="t-meta accent" style="letter-spacing:.22em">系統有沒有用?</div>
-      <h2 class="h-xl-zh" style="font-size:min(4.6vw,8vh)">塑形<span style="font-style:italic;color:var(--accent)">只在</span>原生訊號弱時有用</h2>
+      <h2 class="h-xl-zh" style="font-size:min(3.8vw,6.4vh)">原生訊號越弱，塑形<span style="font-style:italic;color:var(--accent)">越有用</span></h2>
     </div>
 
-    <div data-anim="ledger" style="display:flex;flex-direction:column;margin-top:3.2vh">
-      <div style="display:grid;grid-template-columns:minmax(5.6vw,auto) 1fr minmax(9ch,auto);gap:2.4vw;align-items:center;padding:1.95vh 0;border-bottom:1px solid var(--border-subtle)">
-        <div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.2vh);line-height:.9;letter-spacing:-.04em;color:var(--accent);font-feature-settings:'tnum';white-space:nowrap">+116<span style="font-size:.30em;font-weight:400;vertical-align:.55em;margin-left:.08em">%</span></div>
-        <div style="display:flex;flex-direction:column;gap:1.1vh;min-width:0">
-          <div class="t-h-prod">CartPole <span class="t-body-sm" style="color:var(--text-secondary);font-weight:400">· 稀疏 · B0 成功率 0%</span></div>
-          <div style="height:9px;background:var(--grey-1);display:flex"><div style="height:100%;width:100%;background:var(--accent)"></div></div>
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:7fr 5fr;gap:2.6vw;align-items:stretch;margin-top:1.2vh">
+      <!-- 左:四環境 demo GIF,白底發絲線框 -->
+      <figure data-anim="img" style="margin:0;display:flex;flex-direction:column;min-height:0;background:#fff;border:1px solid var(--border-subtle);padding:1.2vh 1vw">
+        <img src="images/grid_2x2.gif" data-image-slot="s07-demo-grid4" alt="四環境 demo:CartPole / Acrobot / MountainCar / LunarLander,B0 對比 Hermes" style="width:100%;flex:1;min-height:0;object-fit:contain;display:block">
+        <figcaption class="t-body-sm" style="margin-top:1vh;color:var(--text-primary);font-weight:400;font-size:max(16px,.9vw);border-top:1px solid var(--border-subtle);padding-top:.8vh">四環境 B0 vs Hermes：<strong style="font-weight:600">稀疏受益</strong>，<strong style="font-weight:600;color:var(--accent)">密集打平</strong>。</figcaption>
+      </figure>
+
+      <!-- 右:四個 Δ% 大數字行 -->
+      <div data-anim="ledger" style="display:flex;flex-direction:column;justify-content:center;gap:0">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:1.4vw;align-items:baseline;padding:1.2vh 0;border-bottom:1px solid var(--border-subtle)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.6vw,6vh);line-height:.9;letter-spacing:-.04em;color:var(--accent);font-feature-settings:'tnum';white-space:nowrap">+116<span style="font-size:.30em;font-weight:400;vertical-align:.55em;margin-left:.06em">%</span></div>
+          <div style="min-width:0"><div class="t-h-prod" style="font-size:max(18px,1.2vw)">CartPole</div><div class="t-meta" style="color:var(--text-secondary);margin-top:.3vh">稀疏 · p=.032 · <span style="color:var(--accent);font-weight:700">WIN</span></div></div>
         </div>
-        <div class="t-meta" style="white-space:nowrap;text-align:right;color:var(--text-secondary)">p=.032 · <span style="color:var(--accent);font-weight:700">WIN</span></div>
-      </div>
-      <div style="display:grid;grid-template-columns:minmax(5.6vw,auto) 1fr minmax(9ch,auto);gap:2.4vw;align-items:center;padding:1.95vh 0;border-bottom:1px solid var(--border-subtle)">
-        <div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.2vh);line-height:.9;letter-spacing:-.04em;color:var(--accent);font-feature-settings:'tnum';white-space:nowrap">+57.5<span style="font-size:.30em;font-weight:400;vertical-align:.55em;margin-left:.08em">%</span></div>
-        <div style="display:flex;flex-direction:column;gap:1.1vh;min-width:0">
-          <div class="t-h-prod">Acrobot <span class="t-body-sm" style="color:var(--text-secondary);font-weight:400">· 稀疏 · −1/step</span></div>
-          <div style="height:9px;background:var(--grey-1);display:flex"><div style="height:100%;width:49.6%;background:var(--accent)"></div></div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:1.4vw;align-items:baseline;padding:1.2vh 0;border-bottom:1px solid var(--border-subtle)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.6vw,6vh);line-height:.9;letter-spacing:-.04em;color:var(--accent);font-feature-settings:'tnum';white-space:nowrap">+57.5<span style="font-size:.30em;font-weight:400;vertical-align:.55em;margin-left:.06em">%</span></div>
+          <div style="min-width:0"><div class="t-h-prod" style="font-size:max(18px,1.2vw)">Acrobot</div><div class="t-meta" style="color:var(--text-secondary);margin-top:.3vh">稀疏 · p=.095 · 近 WIN</div></div>
         </div>
-        <div class="t-meta" style="white-space:nowrap;text-align:right;color:var(--text-secondary)">p=.095 · 近 WIN</div>
-      </div>
-      <div style="display:grid;grid-template-columns:minmax(5.6vw,auto) 1fr minmax(9ch,auto);gap:2.4vw;align-items:center;padding:1.95vh 0;border-bottom:1px solid var(--border-subtle)">
-        <div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.2vh);line-height:.9;letter-spacing:-.04em;color:var(--accent);font-feature-settings:'tnum';white-space:nowrap">+31.5<span style="font-size:.30em;font-weight:400;vertical-align:.55em;margin-left:.08em">%</span></div>
-        <div style="display:flex;flex-direction:column;gap:1.1vh;min-width:0">
-          <div class="t-h-prod">MountainCar <span class="t-body-sm" style="color:var(--text-secondary);font-weight:400">· 稀疏 · B0 成功率 0%</span></div>
-          <div style="height:9px;background:var(--grey-1);display:flex"><div style="height:100%;width:27.2%;background:var(--accent)"></div></div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:1.4vw;align-items:baseline;padding:1.2vh 0;border-bottom:1px solid var(--border-subtle)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.6vw,6vh);line-height:.9;letter-spacing:-.04em;color:var(--accent);font-feature-settings:'tnum';white-space:nowrap">+31.5<span style="font-size:.30em;font-weight:400;vertical-align:.55em;margin-left:.06em">%</span></div>
+          <div style="min-width:0"><div class="t-h-prod" style="font-size:max(18px,1.2vw)">MountainCar</div><div class="t-meta" style="color:var(--text-secondary);margin-top:.3vh">稀疏 · p=.011 · <span style="color:var(--accent);font-weight:700">WIN</span></div></div>
         </div>
-        <div class="t-meta" style="white-space:nowrap;text-align:right;color:var(--text-secondary)">p=.011 · <span style="color:var(--accent);font-weight:700">WIN</span></div>
-      </div>
-      <div style="display:grid;grid-template-columns:minmax(5.6vw,auto) 1fr minmax(9ch,auto);gap:2.4vw;align-items:center;padding:1.95vh 0;border-bottom:2px solid var(--ink)">
-        <div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.2vh);line-height:.9;letter-spacing:-.04em;color:var(--text-placeholder);font-feature-settings:'tnum';white-space:nowrap">−11.4<span style="font-size:.30em;font-weight:400;vertical-align:.55em;margin-left:.08em">%</span></div>
-        <div style="display:flex;flex-direction:column;gap:1.1vh;min-width:0">
-          <div class="t-h-prod" style="color:var(--text-secondary)">LunarLander <span class="t-body-sm" style="color:var(--text-secondary);font-weight:400">· 密集 · 唯一反轉</span></div>
-          <div style="height:9px;background:var(--grey-1);display:flex;justify-content:flex-end"><div style="height:100%;width:9.8%;background:var(--border-strong)"></div></div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:1.4vw;align-items:baseline;padding:1.2vh 0;border-bottom:2px solid var(--ink)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.6vw,6vh);line-height:.9;letter-spacing:-.04em;color:var(--text-placeholder);font-feature-settings:'tnum';white-space:nowrap">−11.4<span style="font-size:.30em;font-weight:400;vertical-align:.55em;margin-left:.06em">%</span></div>
+          <div style="min-width:0"><div class="t-h-prod" style="color:var(--text-secondary);font-size:max(18px,1.2vw)">LunarLander</div><div class="t-meta" style="color:var(--text-helper);margin-top:.3vh">密集 · p=1.0 · 反轉 n.s.</div></div>
         </div>
-        <div class="t-meta" style="white-space:nowrap;text-align:right;color:var(--text-helper)">p=1.0 · 反轉 n.s.</div>
       </div>
     </div>
 
-    <div style="margin-top:auto;border-top:1px solid var(--border-subtle);padding-top:1.8vh;display:flex;justify-content:space-between;align-items:baseline;gap:2vw">
-      <p class="t-body-sm" style="max-width:64ch">LLM 塑形把「學不動」的稀疏任務（CartPole／MountainCar B0＝0%）直接<strong style="font-weight:600;color:var(--text-primary)">解鎖</strong>；密集的 LunarLander 反而小幅退步。</p>
+    <div style="margin-top:.8vh;display:flex;justify-content:flex-end">
       <div class="t-meta accent" style="white-space:nowrap;color:var(--accent)">數據直覺 · 訊號弱才需要塑形</div>
     </div>
   </div>
 </section>
 
-<!-- ===== P7 · 結果二 密集獎勵下記憶顯著有害(全場重心)· S08 Duo Compare (亮底 + demo GIF) ===== -->
+<!-- ===== 13 · Ch.4 (4/6) · 結果二 密集獎勵下記憶顯著有害 · S08 Duo Compare + GIF ===== -->
 <section class="slide" data-layout="S08" data-animate="duo-mirror">
   <div class="canvas-card">
+    <div class="page-numeral bl">04</div>
     <div class="chrome-min">
-      <div class="l">RESULT 02 · LUNARLANDER · B3-no-memory vs B3-full</div>
-      <div class="r">07 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 4</span><span class="ch-nm">實驗結果 · 結果二 · LunarLander</span><span class="ch-prog">(4/6)</span></div>
+      <div class="r">13 / 18</div>
     </div>
-    <div data-anim="line" style="display:flex;flex-direction:column;gap:1vh">
-      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">全場重心 · THE KEY RESULT</div>
-      <h2 class="h-xl-zh" style="font-size:min(4.2vw,7.2vh);color:var(--ink)">密集獎勵下，「記憶」<span style="font-style:italic;color:var(--accent)">顯著有害</span></h2>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:.8vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">主要發現 · B3-no-memory vs B3-full</div>
+      <h2 class="h-xl-zh" style="font-size:min(3.9vw,6.6vh);color:var(--ink)">密集獎勵下，「記憶」<span style="font-style:italic;color:var(--accent)">顯著有害</span></h2>
     </div>
 
-    <div style="flex:1;min-height:0;display:grid;grid-template-columns:7fr 5fr;gap:2.6vw;align-items:stretch;margin-top:1.8vh">
-      <!-- 左:demo GIF 全場重心,白底發絲線框 -->
-      <figure data-anim="img" style="margin:0;display:flex;flex-direction:column;min-height:0;background:#fff;border:1px solid var(--border-subtle);padding:1.4vh 1.2vw">
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:7fr 5fr;gap:2.6vw;align-items:stretch;margin-top:1.4vh">
+      <!-- 左:demo GIF,白底發絲線框 -->
+      <figure data-anim="img" style="margin:0;display:flex;flex-direction:column;min-height:0;background:#fff;border:1px solid var(--border-subtle);padding:1.2vh 1vw">
         <img src="images/p7_memory_harm.gif" data-image-slot="s08-demo-2up" alt="左:B3 無記憶穩穩落地;右:B3 加記憶 seed_43 貼地懸停" style="width:100%;flex:1;min-height:0;object-fit:contain;display:block">
-        <figcaption class="t-body-sm" style="margin-top:1.2vh;color:var(--text-primary);font-weight:400;border-top:1px solid var(--border-subtle);padding-top:1vh">同一套 LLM 獎勵，差別只在記憶：<strong style="font-weight:600">無記憶穩穩落地</strong>，<strong style="font-weight:600;color:var(--accent)">有記憶 seed_43 學會貼地懸停（11.6 分）</strong>。</figcaption>
+        <figcaption class="t-body-sm" style="margin-top:1vh;color:var(--text-primary);font-weight:400;font-size:max(16px,.9vw);border-top:1px solid var(--border-subtle);padding-top:.8vh">同一套 LLM 獎勵，差別只在記憶：<strong style="font-weight:600">無記憶穩穩落地</strong>，<strong style="font-weight:600;color:var(--accent)">有記憶 seed_43 貼地懸停（11.6 分）</strong>。</figcaption>
       </figure>
 
       <!-- 右:compact 兩欄數字 (duo-compare 供動效辨識) -->
       <div class="duo-compare" style="margin-top:0;grid-template-columns:1fr;gap:0;align-items:stretch">
-        <div class="col" style="gap:.8vh;padding:0 0 2vh">
+        <div class="col" style="gap:.6vh;padding:0 0 1.6vh;margin-top:0">
           <div class="col-tag"><span class="num">B3</span> NO-MEMORY</div>
-          <div class="col-ttl" style="color:var(--text-primary);font-size:min(4.6vw,8vh)">248<span style="font-size:.34em;font-weight:300;opacity:.6;vertical-align:.4em">.77</span></div>
-          <p class="col-desc" style="color:var(--text-secondary);max-width:none">沒記憶時，LunarLander 平均回報穩定收在高分區。</p>
+          <div class="col-ttl" style="color:var(--text-primary);font-size:min(4.2vw,7vh)">248<span style="font-size:.34em;font-weight:300;opacity:.6;vertical-align:.4em">.77</span></div>
+          <p class="col-desc" style="color:var(--text-secondary);max-width:none;font-size:max(17px,.98vw)">無記憶時，LunarLander 平均回報穩定收在高分區。</p>
         </div>
         <div class="vrule" style="background:var(--border-subtle);width:auto;height:1px"></div>
-        <div class="col accent" style="gap:.8vh;padding:2vh 0 0">
+        <div class="col accent" style="gap:.6vh;padding:1.6vh 0 0;margin-top:0">
           <div class="col-tag"><span class="num">B3</span> HERMES-FULL</div>
-          <div class="col-ttl" style="color:var(--accent);font-size:min(4.6vw,8vh)">153<span style="font-size:.34em;font-weight:300;opacity:.6;vertical-align:.4em">.56</span></div>
-          <div style="display:flex;gap:.8vw;flex-wrap:wrap;align-items:baseline">
-            <span style="font-family:var(--sans);font-weight:700;font-size:max(20px,1.6vw);color:var(--accent)">−38.3%</span>
-            <span class="t-meta accent" style="color:var(--accent)">p = 0.0317 · 顯著</span>
+          <div style="display:flex;align-items:baseline;gap:1.2vw;flex-wrap:wrap">
+            <div class="col-ttl" style="color:var(--accent);font-size:min(4.2vw,7vh)">153<span style="font-size:.34em;font-weight:300;opacity:.6;vertical-align:.4em">.56</span></div>
+            <span style="font-family:var(--sans);font-weight:700;font-size:max(20px,1.5vw);color:var(--accent)">−38.3%</span>
+            <span class="t-meta accent" style="color:var(--accent)">p=0.0317 · 顯著</span>
           </div>
-          <p class="col-desc" style="color:var(--text-secondary);max-width:none">加記憶後 LLM 一輪輪疊塑形，把策略推離最優。三個稀疏環境記憶效應 +37.5／+21.4／+0.4%，皆不顯著。機制假說：potential-based shaping drift（Ng et al. 1999）。</p>
+          <p class="col-desc" style="color:var(--text-secondary);max-width:none;font-size:max(17px,.98vw)">記憶逼 LLM 一輪輪疊塑形、推離最優；三個稀疏環境效應 +37.5／+21.4／+0.4% 皆不顯著。機制：potential-based shaping drift<span class="cref">[8]</span>。</p>
         </div>
       </div>
     </div>
-    <div class="t-meta" style="color:var(--text-secondary);text-align:right;margin-top:1.2vh">數據直覺 · 原生獎勵夠好時，記憶逼 LLM 疊塑形、推離最優</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:2vw;margin-top:1vh">
+      <div class="cite-line"><span class="ref"><b>[8]</b> Ng et al., potential-based shaping, ICML 1999</span></div>
+      <div class="t-meta accent" style="color:var(--accent);text-align:right;white-space:nowrap">數據直覺 · 原生夠好時，記憶反而推離最優</div>
+    </div>
   </div>
 </section>
 
-<!-- ===== P8 · 結果三 變異性指紋 · S20 Stacked KPI Ledger ===== -->
+<!-- ===== 14 · Ch.4 (5/6) · 結果三 變異性指紋 · S20 Stacked KPI Ledger ===== -->
 <section class="slide" data-layout="S20" data-animate="stacked-ledger">
   <div class="canvas-card">
+    <div class="page-numeral bl">04</div>
     <div class="chrome-min">
-      <div class="l">RESULT 03 · 變異性指紋 · PER-SEED STD</div>
-      <div class="r">08 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 4</span><span class="ch-nm">實驗結果 · 結果三 變異性指紋</span><span class="ch-prog">(5/6)</span></div>
+      <div class="r">14 / 18</div>
     </div>
-    <div data-anim="line" style="display:flex;flex-direction:column;gap:1vh;margin-bottom:.4vh">
-      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">分界線是「塑形空間有多大」，不是密度</div>
-      <h2 class="h-xl-zh" style="font-size:min(4vw,6.8vh)">塑形空間越大，<br/>變異就越大</h2>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:.8vh;margin-bottom:.4vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">分界線是「塑形空間有多大」，不是密度 · PER-SEED STD</div>
+      <h2 class="h-xl-zh" style="font-size:min(3.4vw,5.8vh)">塑形空間越大，變異就越大</h2>
     </div>
 
-    <div data-anim="ledger" class="stacked-ledger" style="display:flex;flex-direction:column;margin-top:.6vh">
-      <div class="ledger-row" style="display:grid;grid-template-columns:auto 1fr auto;gap:2vw;align-items:baseline;padding:1.25vh 0;border-bottom:1px solid var(--border-subtle)">
-        <div class="ledger-num" style="font-family:var(--sans);font-weight:200;font-size:min(6.6vw,10vh);line-height:.9;letter-spacing:-.04em;color:var(--text-primary);font-feature-settings:'tnum'">3.08</div>
-        <div class="ledger-label"><div class="t-h-prod">MountainCar</div><p class="t-body-sm">稀疏 · 單一子目標 → 收斂到近最優，五個 seed 幾乎同值。</p></div>
-        <i data-lucide="check-check" class="ledger-icon" style="width:2vw;height:2vw;stroke-width:1.6;color:var(--accent)"></i>
-      </div>
-      <div class="ledger-row" style="display:grid;grid-template-columns:auto 1fr auto;gap:2vw;align-items:baseline;padding:1.25vh 0;border-bottom:1px solid var(--border-subtle)">
-        <div class="ledger-num" style="font-family:var(--sans);font-weight:200;font-size:min(6.6vw,10vh);line-height:.9;letter-spacing:-.04em;color:var(--text-primary);font-feature-settings:'tnum'">4.39</div>
-        <div class="ledger-label"><div class="t-h-prod">Acrobot</div><p class="t-body-sm">稀疏 · 同樣超穩,變異與 MountainCar 同一量級。</p></div>
-        <i data-lucide="check-check" class="ledger-icon" style="width:2vw;height:2vw;stroke-width:1.6;color:var(--accent)"></i>
-      </div>
-      <div class="ledger-row" style="display:grid;grid-template-columns:auto 1fr auto;gap:2vw;align-items:baseline;padding:1.25vh 0;border-bottom:1px solid var(--border-subtle)">
-        <div class="ledger-num" style="font-family:var(--sans);font-weight:200;font-size:min(6.6vw,10vh);line-height:.9;letter-spacing:-.04em;color:var(--text-primary);font-feature-settings:'tnum'">113<span style="font-size:.34em;font-weight:300;opacity:.6;vertical-align:.4em">.18</span></div>
-        <div class="ledger-label"><div class="t-h-prod">CartPole</div><p class="t-body-sm">高變異 · 塑形空間大 → 很多「似是而非」的獎勵，差一個數量級。</p></div>
-        <i data-lucide="activity" class="ledger-icon" style="width:2vw;height:2vw;stroke-width:1.6;color:var(--text-helper)"></i>
-      </div>
-      <div class="ledger-row" style="display:grid;grid-template-columns:auto 1fr auto;gap:2vw;align-items:baseline;padding:1.25vh 0;border-bottom:2px solid var(--accent)">
-        <div class="ledger-num" style="font-family:var(--sans);font-weight:200;font-size:min(6.6vw,10vh);line-height:.9;letter-spacing:-.04em;color:var(--accent);font-feature-settings:'tnum'">91<span style="font-size:.34em;font-weight:300;opacity:.6;vertical-align:.4em">.40</span></div>
-        <div class="ledger-label"><div class="t-h-prod">LunarLander</div><p class="t-body-sm">高變異 · per-iteration 上下震盪(vs MountainCar 單調往上)。</p></div>
-        <i data-lucide="activity" class="ledger-icon" style="width:2vw;height:2vw;stroke-width:1.6;color:var(--text-helper)"></i>
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:7fr 5fr;gap:2.6vw;align-items:stretch;margin-top:1.2vh">
+      <!-- 左:變異指紋 demo GIF,白底發絲線框 -->
+      <figure data-anim="img" style="margin:0;display:flex;flex-direction:column;min-height:0;background:#fff;border:1px solid var(--border-subtle);padding:1.2vh 1vw">
+        <img src="images/variance_fingerprint.gif" data-image-slot="s20-variance-fp" alt="上:MountainCar 三個 seed 軌跡幾乎重合;下:LunarLander 三個 seed 軌跡分歧" style="width:100%;flex:1;min-height:0;object-fit:contain;display:block">
+        <figcaption class="t-body-sm" style="margin-top:1vh;color:var(--text-primary);font-weight:400;font-size:max(16px,.9vw);border-top:1px solid var(--border-subtle);padding-top:.8vh">同條件、不同 seed：<strong style="font-weight:600">稀疏簡單環境幾乎一致</strong>，<strong style="font-weight:600;color:var(--accent)">密集塑形環境分歧大</strong>。</figcaption>
+      </figure>
+
+      <!-- 右:per-seed std 數字,分穩/亂兩組 -->
+      <div data-anim="ledger" style="display:flex;flex-direction:column;justify-content:center;gap:0">
+        <div class="t-meta accent" style="color:var(--accent);margin-bottom:.6vh">穩 · 稀疏 · 近最優收斂</div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:1.4vw;align-items:baseline;padding:1vh 0;border-bottom:1px solid var(--border-subtle)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.4vw,5.6vh);line-height:.9;letter-spacing:-.04em;color:var(--text-primary);font-feature-settings:'tnum'">3.08</div>
+          <div class="t-h-prod" style="font-size:max(18px,1.2vw)">MountainCar</div>
+          <i data-lucide="check-check" style="width:1.8vw;height:1.8vw;stroke-width:1.6;color:var(--accent)"></i>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:1.4vw;align-items:baseline;padding:1vh 0;border-bottom:1px solid var(--border-subtle)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.4vw,5.6vh);line-height:.9;letter-spacing:-.04em;color:var(--text-primary);font-feature-settings:'tnum'">4.39</div>
+          <div class="t-h-prod" style="font-size:max(18px,1.2vw)">Acrobot</div>
+          <i data-lucide="check-check" style="width:1.8vw;height:1.8vw;stroke-width:1.6;color:var(--accent)"></i>
+        </div>
+        <div class="t-meta" style="color:var(--text-helper);margin-top:1.4vh;margin-bottom:.6vh">亂 · 塑形空間大 · 差一個數量級</div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:1.4vw;align-items:baseline;padding:1vh 0;border-bottom:1px solid var(--border-subtle)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.4vw,5.6vh);line-height:.9;letter-spacing:-.04em;color:var(--text-primary);font-feature-settings:'tnum'">113<span style="font-size:.34em;font-weight:300;opacity:.6;vertical-align:.4em">.18</span></div>
+          <div class="t-h-prod" style="font-size:max(18px,1.2vw)">CartPole</div>
+          <i data-lucide="activity" style="width:1.8vw;height:1.8vw;stroke-width:1.6;color:var(--text-helper)"></i>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:1.4vw;align-items:baseline;padding:1vh 0;border-bottom:2px solid var(--accent)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.4vw,5.6vh);line-height:.9;letter-spacing:-.04em;color:var(--accent);font-feature-settings:'tnum'">91<span style="font-size:.34em;font-weight:300;opacity:.6;vertical-align:.4em">.40</span></div>
+          <div class="t-h-prod" style="font-size:max(18px,1.2vw)">LunarLander</div>
+          <i data-lucide="activity" style="width:1.8vw;height:1.8vw;stroke-width:1.6;color:var(--text-helper)"></i>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ===== P9 · 結果四 與 DQN 架構正交(Part 2)· S22 Image Hero · fig7 ===== -->
-<section class="slide" data-layout="S22" data-animate="image-hero">
+<!-- ===== 15 · Ch.4 (6/6) · 結果四 模型無關 (Part 2) · S08 Duo Compare + GIF ===== -->
+<section class="slide" data-layout="S08" data-animate="duo-mirror">
   <div class="canvas-card" style="display:flex;flex-direction:column">
+    <div class="page-numeral bl">04</div>
     <div class="chrome-min">
-      <div class="l">RESULT 04 · PART 2 · MODEL-AGNOSTIC</div>
-      <div class="r">09 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 4</span><span class="ch-nm">實驗結果 · 結果四 模型無關 (Part 2)</span><span class="ch-prog">(6/6)</span></div>
+      <div class="r">15 / 18</div>
     </div>
     <div data-anim="line" style="display:flex;flex-direction:column;gap:1vh">
       <div class="t-meta accent" style="letter-spacing:.22em">Part 2 · 模型無關性 MODEL-AGNOSTIC</div>
       <h2 class="h-xl-zh" style="font-size:min(3.6vw,6.2vh)">獎勵設計與 value network 架構<span style="font-style:italic;color:var(--accent)">正交</span></h2>
     </div>
-    <div data-anim="img" style="flex:1;min-height:0;margin-top:2.2vh;background:#fff;border:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:center;padding:1.6vh 1.4vw">
-      <img src="images/fig7_part2_hermes_vs_b0.png" data-image-slot="s22-hero-21x9" alt="Part 2:Double / Dueling DQN 三變體 × 四環境,Hermes vs B0"
-           style="max-width:100%;max-height:100%;object-fit:contain">
+
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:7fr 5fr;gap:2.6vw;align-items:stretch;margin-top:1.4vh">
+      <!-- 左:三變體 demo GIF,白底發絲線框 -->
+      <figure data-anim="img" style="margin:0;display:flex;flex-direction:column;min-height:0;background:#fff;border:1px solid var(--border-subtle);padding:1.2vh 1vw">
+        <img src="images/dqn_compare_cp.gif" data-image-slot="s08-dqn-variants" alt="Vanilla / Double / Dueling 三種 DQN 變體在 CartPole 的對比" style="width:100%;flex:1;min-height:0;object-fit:contain;display:block">
+        <figcaption class="t-body-sm" style="margin-top:1vh;color:var(--text-primary);font-weight:400;font-size:max(16px,.9vw);border-top:1px solid var(--border-subtle);padding-top:.8vh">三種 DQN 變體（Vanilla<span style="opacity:.6">|</span>Double<span class="cref">[9]</span><span style="opacity:.6">|</span>Dueling<span class="cref">[10]</span>）都<strong style="font-weight:600;color:var(--accent)">重現密度型態</strong>。</figcaption>
+      </figure>
+
+      <!-- 右:三個 KPI 行 -->
+      <div data-anim="ledger" style="display:flex;flex-direction:column;justify-content:center;gap:0">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:1.4vw;align-items:center;padding:1.4vh 0;border-bottom:1px solid var(--border-subtle)">
+          <div class="kpi-hero accent" style="font-size:min(4vw,6.4vh);font-weight:200;line-height:.9">9/9</div>
+          <div style="min-width:0"><div class="t-meta accent" style="color:var(--accent)">稀疏 9 格</div><p class="t-body-sm" style="font-size:max(16px,.92vw);margin-top:.3vh">三變體全部正向；MountainCar 三變體皆顯著。</p></div>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:1.4vw;align-items:center;padding:1.4vh 0;border-bottom:1px solid var(--border-subtle)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(4vw,6.4vh);line-height:.9;letter-spacing:-.04em;color:var(--text-primary);white-space:nowrap">3/3<span style="font-size:.34em;font-weight:400;margin-left:.2em;vertical-align:.3em">負</span></div>
+          <div style="min-width:0"><div class="t-meta">密集 LunarLander</div><p class="t-body-sm" style="font-size:max(16px,.92vw);margin-top:.3vh">三變體皆負，密度反轉穩定。</p></div>
+        </div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:1.4vw;align-items:center;padding:1.4vh 0;border-bottom:2px solid var(--accent)">
+          <div style="font-family:var(--sans);font-weight:200;font-size:min(4vw,6.4vh);line-height:.9;letter-spacing:-.04em;color:var(--text-primary);white-space:nowrap">p&gt;0.3</div>
+          <div style="min-width:0"><div class="t-meta">Hermes 跨變體</div><p class="t-body-sm" style="font-size:max(16px,.92vw);margin-top:.3vh">三變體互比全部不顯著 → 與架構無關。</p></div>
+        </div>
+      </div>
     </div>
-    <div data-anim="kpi" style="padding-top:2.4vh">
-      <div style="max-width:54ch;font-family:var(--sans),var(--sans-zh);font-size:max(18px,1.2vw);line-height:1.55;font-weight:400;color:var(--text-primary);letter-spacing:-.005em">
-        固定獎勵管線，只換 vanilla／Double／Dueling DQN。Part 1 的密度型態<strong style="font-weight:600">完整重現</strong> → 框架可插拔。
-      </div>
-      <div class="image-hero-stats" style="gap:3vw">
-        <div style="display:flex;flex-direction:column;gap:.6vh"><div style="height:2px;background:var(--accent)"></div><div class="t-meta">稀疏 9 格</div><div class="kpi-hero accent" style="font-size:min(4.4vw,7.4vh);font-weight:200">9/9</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="t-body-sm">三變體全部正向;MountainCar 三變體皆顯著。</p></div>
-        <div style="display:flex;flex-direction:column;gap:.6vh"><div style="height:2px;background:var(--ink)"></div><div class="t-meta">密集 LunarLander</div><div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.4vh);line-height:.95;letter-spacing:-.04em;color:var(--text-primary)">3/3 負</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="t-body-sm">三變體皆負,密度反轉穩定。</p></div>
-        <div style="display:flex;flex-direction:column;gap:.6vh"><div style="height:2px;background:var(--ink)"></div><div class="t-meta">Hermes 跨變體</div><div style="font-family:var(--sans);font-weight:200;font-size:min(4.4vw,7.4vh);line-height:.95;letter-spacing:-.04em;color:var(--text-primary)">p&gt;0.3</div><div style="height:1px;background:var(--border-subtle);margin-top:auto"></div><p class="t-body-sm">三變體互比全部不顯著 → 與架構無關。</p></div>
-      </div>
+    <div style="margin-top:auto;padding-top:1.2vh;display:flex;justify-content:space-between;align-items:baseline;gap:2vw">
+      <div class="cite-line"><span class="ref"><b>[9]</b> van Hasselt et al., Double DQN, AAAI 2016</span><span class="ref"><b>[10]</b> Wang et al., Dueling DQN, ICML 2016</span></div>
+      <div class="t-meta accent" style="color:var(--accent);text-align:right;white-space:nowrap">固定獎勵管線，只換 value network → 框架可插拔</div>
     </div>
   </div>
 </section>
 
-<!-- ===== P10 · 限制(主動揭露)· S16 Multi-card Brief ===== -->
-<section class="slide grey" data-layout="S16" data-animate="field-notes">
+<!-- ===== 16 · Ch.5 Conclusion (1/2) · Contributions 貢獻 + reward density 假說 · S19 Four Cards ===== -->
+<section class="slide" data-layout="S19" data-animate="four-cards">
   <div class="canvas-card">
+    <div class="page-numeral bl">05</div>
     <div class="chrome-min">
-      <div class="l">LIMITATIONS · 主動揭露</div>
-      <div class="r">10 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 5</span><span class="ch-nm">結論 Conclusion</span><span class="ch-prog">(1/2)</span></div>
+      <div class="r">16 / 18</div>
     </div>
     <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
-      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">弱點先講掉，反而更可信</div>
-      <h2 class="h-xl-zh" style="font-size:min(4.4vw,7.6vh)">四個方法學邊界</h2>
+      <div style="width:80px;height:2px;background:var(--accent)"></div>
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">四項貢獻 · CONTRIBUTIONS</div>
+      <h2 class="h-xl-zh" style="font-size:min(4vw,7vh)">本研究<span style="font-style:italic;color:var(--accent)">建立</span>了什麼</h2>
     </div>
 
-    <div data-anim="up" class="brief-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1.4vh 1.6vw;flex:1;margin-top:2.2vh;margin-bottom:1.2vh;align-content:stretch">
-      <div class="card-fill" style="padding:2vh 1.8vw;display:flex;flex-direction:column">
-        <div class="t-cat accent" style="color:var(--accent)">01 · 樣本量</div>
-        <div class="t-h-prod" style="margin-top:1vh">n＝5，只測得出大效應</div>
-        <p class="t-body-sm" style="margin-top:auto">要 Cohen's d ≥ 1 才偵測得到；中等效應沒定論。</p>
+    <div data-anim="up" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.6vw;flex:1;margin-top:2.4vh;align-content:stretch">
+      <div style="display:flex;flex-direction:column;border-top:1px solid var(--border-subtle);padding-top:1.6vh">
+        <div class="t-meta accent" style="color:var(--accent)">— 01</div>
+        <div class="t-h-prod" style="font-size:max(21px,1.6vw);margin-top:1vh">開源可行</div>
+        <p class="t-body-sm" style="font-size:max(17px,.96vw);margin-top:1vh">開源 <strong style="font-weight:600;color:var(--text-primary)">Gemma 4 31B</strong> 取代 GPT-4 擔任 reward author，整條管線可重現<span class="cref">[1]</span>。</p>
       </div>
-      <div class="card-fill" style="padding:2vh 1.8vw;display:flex;flex-direction:column">
-        <div class="t-cat accent" style="color:var(--accent)">02 · 訓練預算</div>
-        <div class="t-h-prod" style="margin-top:1vh">budget 短，baseline 偏弱</div>
-        <p class="t-body-sm" style="margin-top:auto">CartPole B0 只有 154；測的是收斂速度，不是天花板。</p>
+      <div style="display:flex;flex-direction:column;border-top:1px solid var(--border-subtle);padding-top:1.6vh">
+        <div class="t-meta accent" style="color:var(--accent)">— 02</div>
+        <div class="t-h-prod" style="font-size:max(21px,1.6vw);margin-top:1vh">記憶有害（首次）</div>
+        <p class="t-body-sm" style="font-size:max(17px,.96vw);margin-top:1vh">據我們所知，首次給出<strong style="font-weight:600;color:var(--accent)">統計顯著</strong>的「記憶有害」結果（密集，<strong style="font-weight:600;color:var(--text-primary)">p=0.0317</strong>）<span class="cref">[8]</span>。</p>
       </div>
-      <div class="card-fill" style="padding:2vh 1.8vw;display:flex;flex-direction:column">
-        <div class="t-cat accent" style="color:var(--accent)">03 · baseline 定位</div>
-        <div class="t-h-prod" style="margin-top:1vh">B1 手工獎勵只是 placeholder</div>
-        <p class="t-body-sm" style="margin-top:auto">不是人類專家 baseline；主張只靠 B0／B3／B3-no-mem。</p>
+      <div style="display:flex;flex-direction:column;border-top:1px solid var(--border-subtle);padding-top:1.6vh">
+        <div class="t-meta accent" style="color:var(--accent)">— 03</div>
+        <div class="t-h-prod" style="font-size:max(21px,1.6vw);margin-top:1vh">變異性指紋</div>
+        <p class="t-body-sm" style="font-size:max(17px,.96vw);margin-top:1vh">提出以 per-seed std 為「<strong style="font-weight:600;color:var(--text-primary)">塑形空間</strong>大小」的診斷指紋。</p>
       </div>
-      <div class="card-fill is-accent" style="padding:2vh 1.8vw;display:flex;flex-direction:column;background:var(--accent);color:var(--accent-on)">
-        <div class="t-cat" style="color:rgba(255,255,255,.85)">04 · 變數混淆</div>
-        <div class="t-h-prod" style="margin-top:1vh;color:#fff">單一 LLM · 密度與塑形豐富度部分混在一起</div>
-        <p class="t-body-sm" style="margin-top:auto;color:rgba(255,255,255,.92)">這 4 個環境要加 LunarLanderContinuous 才拆得開兩者。</p>
+      <div style="display:flex;flex-direction:column;border-top:2px solid var(--accent);padding-top:1.6vh">
+        <div class="t-meta accent" style="color:var(--accent)">— 04</div>
+        <div class="t-h-prod" style="font-size:max(21px,1.6vw);margin-top:1vh">模型無關性</div>
+        <p class="t-body-sm" style="font-size:max(17px,.96vw);margin-top:1vh">效果與 value network 架構<strong style="font-weight:600;color:var(--accent)">正交</strong>，框架可插拔（Part 2）<span class="cref">[9][10]</span>。</p>
       </div>
     </div>
+
+    <div style="margin-top:auto;background:var(--accent);color:var(--accent-on);padding:2vh 1.8vw;display:flex;align-items:center;gap:1.8vw">
+      <div class="t-cat" style="color:rgba(255,255,255,.85);white-space:nowrap">核心假說</div>
+      <p class="t-body" style="font-size:max(20px,1.18vw);color:#fff">提出 <strong style="font-weight:700;color:#fff">reward density</strong> 假說 — 記憶在<strong style="font-weight:600">稀疏受益</strong>、在<strong style="font-weight:600">密集有風險</strong>。</p>
+    </div>
+    <div class="cite-line" style="margin-top:1.2vh"><span class="ref"><b>[1]</b> EUREKA, ICLR 2024</span><span class="ref"><b>[8]</b> Ng et al., ICML 1999</span><span class="ref"><b>[9]</b> Double DQN, AAAI 2016</span><span class="ref"><b>[10]</b> Dueling DQN, ICML 2016</span></div>
   </div>
 </section>
 
-<!-- ===== P11 · 結論 + 可證偽預測 · S12 Manifesto + Ink Banner ===== -->
-<section class="slide" data-layout="S12" data-animate="manifesto">
+<!-- ===== 17 · Ch.5 Conclusion (2/2) · Limitations + Future works · S08 Duo Compare ===== -->
+<section class="slide" data-layout="S08" data-animate="duo-mirror">
   <div class="canvas-card">
+    <div class="page-numeral bl">05</div>
     <div class="chrome-min">
-      <div class="l">CONCLUSION · 可證偽預測</div>
-      <div class="r">11 / 12</div>
+      <div class="l ch-eyebrow"><span class="ch-no">Ch. 5</span><span class="ch-nm">結論 Conclusion</span><span class="ch-prog">(2/2)</span></div>
+      <div class="r">17 / 18</div>
+    </div>
+    <div data-anim="line" style="display:flex;flex-direction:column;gap:1.2vh">
+      <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">研究限制 · 未來工作</div>
+      <h2 class="h-xl-zh" style="font-size:min(4.2vw,7.4vh)">研究限制與<span style="font-style:italic;color:var(--accent)">未來工作</span></h2>
     </div>
 
-    <div data-anim="line" style="display:grid;grid-template-columns:7fr 5fr;gap:4vw;align-items:start">
-      <div style="display:flex;flex-direction:column;gap:1.4vh">
-        <div class="t-cat accent" style="color:var(--accent)">TAKEAWAY</div>
-        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(4.4vw,7.6vh);line-height:1.06;letter-spacing:-.02em;color:var(--ink)">稀疏成立、密集反轉；<br/>記憶不是免費升級，<br/>密集<span style="font-style:italic;color:var(--accent)">顯著有害</span></h2>
+    <div class="duo-compare" style="margin-top:3.4vh;flex:0 1 auto">
+      <!-- 左: Limitations -->
+      <div class="col" style="gap:1.4vh">
+        <div class="col-tag"><span class="num">L</span> LIMITATIONS · 限制</div>
+        <ul class="col-list" style="margin-top:0;padding-top:0;border-top:0;gap:1.4vh">
+          <li style="font-size:max(18px,1.04vw);line-height:1.5">n＝5：只測得出大效應（Cohen's d ≥ 1），中等效應 inconclusive。</li>
+          <li style="font-size:max(18px,1.04vw);line-height:1.5">短訓練 budget：測的是收斂速度，不是天花板。</li>
+          <li style="font-size:max(18px,1.04vw);line-height:1.5">B1 手工獎勵僅 placeholder，主張只靠 B0／B3／B3-no-mem。</li>
+          <li style="font-size:max(18px,1.04vw);line-height:1.5">單一 LLM；density 與 shaping richness 在這 4 環境部分混淆。</li>
+        </ul>
       </div>
-      <div style="display:flex;flex-direction:column;gap:1.6vh;padding-top:1vh">
-        <p class="t-body" style="color:var(--text-secondary)">EUREKA 那套搬到開源 Gemma：候選指標是 <strong style="font-weight:600;color:var(--text-primary)">reward density</strong>。</p>
-        <div style="border-left:3px solid var(--accent);padding-left:1.2vw">
-          <p class="t-body-emp">實務建議</p>
-          <p class="t-body-sm" style="margin-top:.4vh">記憶要按任務 <strong style="font-weight:600;color:var(--accent)">opt-in</strong>，不是預設打開。</p>
-        </div>
+      <div class="vrule"></div>
+      <!-- 右: Future works -->
+      <div class="col accent" style="gap:1.4vh">
+        <div class="col-tag"><span class="num">F</span> FUTURE WORKS · 未來工作</div>
+        <ul class="col-list" style="margin-top:0;padding-top:0;border-top:0;gap:1.4vh">
+          <li style="font-size:max(18px,1.04vw);line-height:1.5">連續控制 <strong style="font-weight:600;color:var(--text-primary)">MuJoCo</strong>；用 LunarLanderContinuous 拆開 density / richness。</li>
+          <li style="font-size:max(18px,1.04vw);line-height:1.5"><strong style="font-weight:600;color:var(--accent)">勢能約束</strong>生成：把 shaping 限在 potential-based 子類<span class="cref">[8]</span>。</li>
+          <li style="font-size:max(18px,1.04vw);line-height:1.5">自適應迭代：依任務動態決定記憶要不要 opt-in。</li>
+          <li style="font-size:max(18px,1.04vw);line-height:1.5">多 LLM 比較：檢驗「更大模型、變異更誇張」的預測。</li>
+        </ul>
       </div>
     </div>
 
-    <!-- 底部通栏 條:三個可證偽預測 (亮灰底 + accent 頂線) -->
-    <div data-anim="up" class="ink-banner-full" style="background:var(--grey-1);color:var(--ink);margin:auto -5vw -4.4vh;padding:3.4vh 5vw 4.4vh;border-top:2px solid var(--accent)">
-      <div class="t-meta accent" style="letter-spacing:.22em;margin-bottom:2vh;color:var(--accent)">三個可證偽預測 · FALSIFIABLE PREDICTIONS</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2.6vw">
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:1vw;align-items:start">
-          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.4vw,5.6vh);line-height:.9;color:var(--accent)">01</div>
-          <p class="t-body-sm" style="color:var(--text-primary)">原生「密但沒對齊」的任務，記憶反而會幫忙。</p>
-        </div>
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:1vw;align-items:start">
-          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.4vw,5.6vh);line-height:.9;color:var(--accent)">02</div>
-          <p class="t-body-sm" style="color:var(--text-primary)">光靠 density 不夠，要「稀疏／密集 × 塑形豐富／貧乏」二維分類。</p>
-        </div>
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:1vw;align-items:start">
-          <div style="font-family:var(--sans);font-weight:200;font-size:min(3.4vw,5.6vh);line-height:.9;color:var(--accent)">03</div>
-          <p class="t-body-sm" style="color:var(--text-primary)">更大的 LLM 變異更誇張：上限更高，崩潰風險也更高。</p>
-        </div>
-      </div>
+    <div style="margin-top:auto;padding-top:1.4vh;display:flex;justify-content:space-between;align-items:baseline;gap:2vw">
+      <div class="cite-line"><span class="ref"><b>[8]</b> Ng et al., potential-based shaping, ICML 1999</span><span class="ref">github.com/oomao/Final_project_Group5_DRL</span></div>
+      <div class="t-meta accent" style="color:var(--accent);text-align:right;white-space:nowrap">記憶應按任務 opt-in，不是預設打開</div>
     </div>
   </div>
 </section>
 
-<!-- ===== P12 · 致謝 / Q&A · SWISS-CLOSING-ASCII · 左 IKB+ASCII / 右白底 ===== -->
-<section class="slide split" data-layout="SWISS-CLOSING-ASCII" data-animate="split-statement">
+<!-- ===== 18 · 封底 Thank You · SWISS-CLOSING-ASCII · 亮底 + 極淡 ASCII 呼吸場 ===== -->
+<section class="slide" data-layout="SWISS-CLOSING-ASCII" data-animate="hero">
   <div class="canvas-card">
-    <div class="split-half">
-      <!-- 左半 · 亮底宣言 + 極淡 ASCII 呼吸場(與封面色彩閉環) -->
-      <div class="half r-border" style="padding:5.6vh 3.6vw 4.4vh;justify-content:space-between;position:relative;overflow:hidden">
-        <canvas class="ascii-bg" aria-hidden="true"></canvas>
-        <div class="chrome-min" style="margin-bottom:0;position:relative;z-index:1">
-          <div class="l">12 / 12</div>
-          <div class="r">THANK YOU</div>
-        </div>
+    <canvas class="ascii-bg" aria-hidden="true"></canvas>
+    <div class="chrome-min">
+      <div class="l">HERMES-DQN · 深度強化學習 期末專題</div>
+      <div class="r">第五組 · 2026 · 18 / 18</div>
+    </div>
 
-        <div data-anim="manifesto" style="display:flex;flex-direction:column;gap:2vh;position:relative;z-index:1">
-          <div class="t-meta accent" style="letter-spacing:.22em;margin-bottom:1.4vh;color:var(--accent)">Q &amp; A</div>
-          <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(7.2vw,13vh);line-height:1;letter-spacing:-.025em;font-weight:200;color:var(--ink)">記憶，<br/>請<span style="font-style:italic;font-weight:300">按任務</span><br/><span style="color:var(--accent)">opt-in。</span></h2>
-          <div style="font-family:var(--sans),var(--sans-zh);font-size:max(18px,1.1vw);line-height:1.6;color:var(--text-secondary);font-weight:400;max-width:32ch;margin-top:1.2vh">首次用多環境＋統計檢定，驗證「記憶」對 LLM 獎勵設計的價值，是看任務的。</div>
-        </div>
-
-        <div data-anim="signature" style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid var(--border-subtle);padding-top:2vh;position:relative;z-index:1">
-          <div class="t-meta" style="color:var(--text-secondary)">陳盛茂 · 林仙安 · 辛語柔 · 陳冠宇</div>
-          <div class="t-meta" style="color:var(--text-secondary)">NCHU · MIS</div>
-        </div>
+    <div data-anim="line" style="flex:1;display:grid;grid-template-columns:1fr;grid-template-rows:1fr auto;gap:2.4vh;align-items:start">
+      <div style="align-self:center;display:flex;flex-direction:column;gap:1.8vh">
+        <div class="t-meta accent" style="letter-spacing:.22em;color:var(--accent)">Q &amp; A</div>
+        <h1 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(12vw,17vh);line-height:.9;letter-spacing:-.04em;color:var(--ink)">Thank <span style="font-weight:300;color:var(--accent)">You</span></h1>
+        <p style="font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:min(2.2vw,3vh);line-height:1.4;letter-spacing:-.01em;color:var(--text-secondary);max-width:58ch">記憶不是免費升級：<strong style="font-weight:600;color:var(--text-primary)">稀疏受益</strong>、<strong style="font-weight:600;color:var(--accent)">密集有風險</strong>，應按任務 opt-in。</p>
       </div>
 
-      <!-- 右半 · 白底收束,第 03 條用 IKB 蓝强调 -->
-      <div class="half" style="padding:5.6vh 3.6vw 4.4vh;justify-content:space-between">
-        <div class="chrome-min">
-          <div class="l">TAKEAWAYS</div>
-          <div class="r">03 RULES</div>
+      <div style="display:grid;grid-template-rows:auto auto;gap:1.4vh;border-top:1px solid var(--border-subtle);padding-top:2vh">
+        <div class="t-meta" style="color:var(--text-secondary);font-size:16px;letter-spacing:.1em">github.com/oomao/Final_project_Group5_DRL</div>
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:2vw">
+          <div class="t-meta" style="color:var(--text-secondary);font-size:16px">陳盛茂 · 林仙安 · 辛語柔 · 陳冠宇 · 第五組</div>
+          <div class="t-meta" style="color:var(--text-helper)">← → · ESC</div>
         </div>
-
-        <div data-anim="rules" style="display:flex;flex-direction:column;gap:0">
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.4vh 0;border-top:1px solid var(--border-subtle)">
-            <div style="font-family:var(--sans);font-weight:200;font-size:min(4.2vw,7.4vh);line-height:.9;color:var(--text-primary)">01</div>
-            <div>
-              <h3 style="font-family:var(--sans),var(--sans-zh);font-weight:500;font-size:max(18px,1.7vw);line-height:1.2;letter-spacing:-.015em;color:var(--text-primary);margin-bottom:.8vh">稀疏受益 · 密集反轉</h3>
-              <p style="font-family:var(--sans),var(--sans-zh);font-size:max(17px,.96vw);line-height:1.55;color:var(--text-secondary);font-weight:400">+116%／+31.5%／+57.5%（稀疏 WIN）；LunarLander −11.4%（密集打平）。</p>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.4vh 0;border-top:1px solid var(--border-subtle)">
-            <div style="font-family:var(--sans);font-weight:200;font-size:min(4.2vw,7.4vh);line-height:.9;color:var(--text-primary)">02</div>
-            <div>
-              <h3 style="font-family:var(--sans),var(--sans-zh);font-weight:500;font-size:max(18px,1.7vw);line-height:1.2;letter-spacing:-.015em;color:var(--text-primary);margin-bottom:.8vh">記憶顯著有害（密集）</h3>
-              <p style="font-family:var(--sans),var(--sans-zh);font-size:max(17px,.96vw);line-height:1.55;color:var(--text-secondary);font-weight:400">248 → 153，−38.3%，p = 0.0317；與 DQN 架構正交（Part 2）。</p>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:2vw;align-items:start;padding:2.4vh 0;border-top:1px solid var(--border-subtle);border-bottom:2px solid var(--accent)">
-            <div style="font-family:var(--sans);font-weight:200;font-size:min(4.2vw,7.4vh);line-height:.9;color:var(--accent)">03</div>
-            <div>
-              <h3 style="font-family:var(--sans),var(--sans-zh);font-weight:500;font-size:max(18px,1.7vw);line-height:1.2;letter-spacing:-.015em;color:var(--accent);margin-bottom:.8vh">候選指標＝reward density</h3>
-              <p style="font-family:var(--sans),var(--sans-zh);font-size:max(17px,.96vw);line-height:1.55;color:var(--text-secondary);font-weight:400">記憶按任務 opt-in，不是預設打開；三個可證偽預測待檢驗。</p>
-            </div>
-          </div>
-        </div>
-
-        <div data-anim="foot" class="t-meta" style="color:var(--text-secondary);text-align:right">github.com/oomao/Final_project_Group5_DRL</div>
       </div>
     </div>
   </div>
