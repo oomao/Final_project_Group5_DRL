@@ -7,6 +7,12 @@
 透過 AST 感知的緩衝區管理與 Fitness 回饋閉環，逐步逼近高品質、穩定可用的 reward function，
 大幅降低人工試錯成本並擺脫對商業 API 的依賴。
 
+<p align="center">
+  <img src="infographic/poster-colorful.png" alt="Hermes-DQN 資訊圖表 — 3 分鐘看懂我們在幹嘛" width="860">
+</p>
+
+> 📊 **3 分鐘看懂全貌**：上圖為本專案資訊圖表；另有[互動 HTML 版](infographic/index.html)與[簡潔版海報](infographic/poster-clean.png)。
+
 ---
 
 ## 📊 為什麼要做這個研究 —— 數據說話
